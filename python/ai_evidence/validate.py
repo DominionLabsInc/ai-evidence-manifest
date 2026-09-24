@@ -182,11 +182,6 @@ def validate_manifest(manifest: dict, offline: bool = True, strict: bool = False
                 findings.append(_warn("unverified",
                     "no verification.verified_at; freshness is unknown", at))
 
-            if ver.get("verified") is True and ver.get("method") == "automatically-generated":
-                findings.append(_warn("auto-verified",
-                    "verified:true with method automatically-generated — machine extraction "
-                    "is not confirmation", f"{at}/verification"))
-
             if len(ev["text"]) > lim["maxTextChars"]:
                 findings.append(_warn("size",
                     f"evidence text is {len(ev['text'])} chars, above the recommended "

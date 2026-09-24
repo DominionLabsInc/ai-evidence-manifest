@@ -4,6 +4,11 @@ import { extractFromPage, toManifest, EXTRACT_DEFAULTS } from './extract.js';
 
 export const CONFIG_FILENAME = 'ai-evidence.config.json';
 
+// RFC 8615: site-wide metadata defined by a convention belongs under
+// /.well-known/. The short root alias is optional and must be identical.
+export const WELL_KNOWN_PATH = '.well-known/ai-evidence.json';
+export const ALIAS_PATH = 'ai.json';
+
 export const CONFIG_DEFAULTS = {
   discover: 'sitemap',     // 'sitemap' | 'links' | 'none'
   include: [],             // path patterns to keep; empty means "everything discovered"

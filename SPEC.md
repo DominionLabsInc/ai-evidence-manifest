@@ -23,34 +23,98 @@ The manifest is explicitly **not**:
 - a means of establishing identity,
 - a ranking, citation or inclusion mechanism for any search or AI system.
 
-## 2. Discovery
+## 2. Discovery and location
 
-The primary location is the site root:
+### 2.1 Canonical location
+
+```
+GET /.well-known/ai-evidence.json
+```
+
+[RFC 8615](https://www.rfc-editor.org/rfc/rfc8615) reserves `/.well-known/` for
+exactly this: site-wide metadata defined by a convention rather than by the
+site. `robots.txt` and `sitemap.xml` sit at the root only because they predate
+that registry; RFC 8615 says new conventions should not follow them there, and
+a root path is not the proposal's to take. A site may already serve `/ai.json`
+for its own purposes, and a second proposal wanting the same path has no way to
+resolve the collision.
+
+Publishers MAY additionally serve the identical document at:
 
 ```
 GET /ai.json
 ```
 
-The resource SHOULD be served:
+This alias exists because it is short enough to say out loud and to type, which
+matters for adoption. It is not canonical. Where both are served they MUST be
+byte-identical. Consumers MUST try `/.well-known/ai-evidence.json` first and
+MAY fall back to `/ai.json`.
 
-- over HTTPS,
-- with `Content-Type: application/json`,
-- publicly, without authentication, so ordinary crawlers and agents can retrieve it,
-- with `Access-Control-Allow-Origin: *`, so browser-based agents can read it.
+### 2.2 Media type
 
-It SHOULD NOT be disallowed in `robots.txt`.
+The resource SHOULD be served as:
 
-Publishers MAY additionally advertise the manifest:
+```
+Content-Type: application/ai-evidence+json
+```
+
+The `+json` structured syntax suffix is [RFC 6839](https://www.rfc-editor.org/rfc/rfc6839).
+This media type is **not yet registered with IANA**; until it is, publishers MAY
+serve `application/json` and consumers MUST accept either. Consumers MUST NOT
+reject a document solely on content type, because misconfigured static hosts are
+common and the document is self-describing via `manifest.version`.
+
+### 2.3 Transport
+
+The resource:
+
+- MUST be served over HTTPS;
+- MUST be publicly retrievable without authentication, so ordinary crawlers and
+  agents can read it;
+- SHOULD be served with `Access-Control-Allow-Origin: *`, so browser-based
+  agents can read it;
+- SHOULD NOT be disallowed in `robots.txt`.
+
+### 2.4 Caching
+
+The resource SHOULD be served with a `Cache-Control` `max-age` no greater than
+`manifest.verification.recheck_interval_days`, so a consumer is not handed a
+document the publisher has already superseded.
+
+`checked_at` is not a cache directive and MUST NOT be used as one: it describes
+when the publisher last verified evidence, not how long this representation may
+be reused. Consumers SHOULD honour ordinary HTTP caching and SHOULD revalidate
+with `ETag` or `Last-Modified` where offered.
+
+### 2.5 Advertisement
+
+Publishers MAY advertise the manifest in HTML or in a `Link` header:
 
 ```html
-<link rel="ai-evidence" href="/ai.json">
+<link rel="https://ai-evidence.org/rel/manifest" href="/.well-known/ai-evidence.json">
 ```
 
 ```
-Link: </ai.json>; rel="ai-evidence"
+Link: </.well-known/ai-evidence.json>; rel="https://ai-evidence.org/rel/manifest"
 ```
 
-Discovery is convention-based. No registry, crawler protocol or central authority is defined, and none is required. This specification does not modify `robots.txt` semantics.
+[RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) requires that a link relation
+which is not in the IANA registry be expressed as a URI. A bare token such as
+`rel="ai-evidence"` is therefore non-conforming until registration, which is why
+the extension URI is used above. Consumers MAY additionally accept the bare
+token, since it will appear in the wild.
+
+Advertisement is optional. The well-known location is the primary mechanism, and
+a consumer that only ever probes it is conforming.
+
+### 2.6 Relationship to robots.txt
+
+This specification does not modify `robots.txt` semantics and defines no new
+crawler directives. A publisher that disallows a path in `robots.txt` has not
+made the evidence there unusable; it has said not to fetch it. Consumers MUST
+continue to honour `robots.txt` when retrieving evidence URLs, and a consumer
+that cannot fetch an evidence URL for that reason holds ASSERTED state only
+(§9b), exactly as if the fetch had failed.
 
 ## 3. Document structure
 
@@ -221,28 +285,127 @@ The reference tooling reads an `ai-evidence.config.json` alongside the site sour
 
 Claims listed under `pin` are emitted unchanged and are never replaced by generation, so hand-written entries survive regeneration. This file is a convenience of the reference implementation and is not part of the wire format; a consumer never sees it.
 
-## 9b. What a consumer is expected to do
+## 9b. Epistemic status, and what each state licenses
 
-The normal path is: fetch `/ai.json`, read the claim, use it.
+This is the core of the protocol and the part most easily got wrong in both
+directions. Requiring a consumer to refetch every source makes the manifest
+worthless — it does the same work as crawling. Permitting a consumer to treat a
+manifest as fact makes it a vector. Neither is correct, and "read the claim,
+done" is not a specification.
 
-A manifest carries the result of checking its own evidence against the live
-site (§8, `manifest.verification`). A consumer that refetches every source
-anyway is repeating work the publisher has already done and published, which
-removes the format's only advantage over crawling.
+A manifest can transfer exactly one thing: **a publisher assertion**. Retrieval
+is what converts an assertion into an **observation**. These are different
+epistemic states and license different operations.
 
-So: **the evidence exists to make a claim checkable, not to require that every
-reader check it.**
+### 9b.1 The two states
 
-A consumer SHOULD retrieve the source when the manifest itself says not to rely
-on it — `checked_at` older than `recheck_interval_days`, `evidence_present`
-below `evidence_total`, or a missing `last_seen` — and when a decision is
-high-impact and hard to reverse.
+**ASSERTED** — the consumer has parsed a valid manifest and read a claim. The
+consumer knows:
 
-This rests on a publisher assertion, and that is acceptable for one reason: it
-is falsifiable at trivial cost. Any consumer can confirm a single quote with one
-request. A publisher reporting checks it did not run is caught by the first
-reader who looks, which is a far stronger constraint than asking every reader to
-verify everything.
+> The operator of `manifest.site` states that claim C is supported by text Q,
+> which they say appears at URL U, and which they say they last confirmed
+> present at time T.
+
+Every element of that is the publisher's word, including T. Nothing has been
+observed.
+
+**OBSERVED** — the consumer has retrieved U, extracted its text, and found Q
+present under §5 normalization. The consumer now knows:
+
+> Text Q was served from U at time T′ (when the consumer fetched it).
+
+Note what OBSERVED still does not establish: that C is true, that U is
+authoritative, or that Q means what the publisher says it means. Retrieval
+upgrades provenance, not truth. No state defined here ever establishes that a
+claim is true; that is outside what a publisher-authored index can do.
+
+### 9b.2 Operations
+
+| Operation | Minimum state | Notes |
+|---|---|---|
+| Discover that a publisher makes claim C at all | ASSERTED | This is the manifest's primary purpose |
+| Locate the evidence for C without crawling | ASSERTED | The efficiency the format exists to provide |
+| Rank, filter or route on C | ASSERTED | Consequences fall on the consumer, are reversible |
+| Repeat C to a user **with attribution to the publisher** | ASSERTED | See §9b.4 |
+| Repeat C **without attribution**, or as the consumer's own finding | OBSERVED | |
+| Use C as a premise in a chain the consumer will act on | OBSERVED | |
+| Take an action that is costly, irreversible, or affects a third party | OBSERVED, and see §9b.5 | |
+
+A conforming consumer MUST NOT perform an operation without holding at least
+the state that operation requires.
+
+### 9b.3 When ASSERTED is not available
+
+A consumer MUST treat a claim as carrying **no state at all** — neither
+ASSERTED nor OBSERVED — when any of the following holds. In that case the claim
+conveys only that some bytes were served; it does not even establish a
+publisher assertion, because the manifest may not reflect the publisher's
+current position:
+
+- the manifest fails schema validation (§14);
+- `manifest.verification` is absent;
+- `manifest.verification.checked_at` is older than
+  `recheck_interval_days`, or older than 365 days when that field is absent;
+- the specific evidence record has no `last_seen`, or its `last_seen` is older
+  than `checked_at`;
+- the manifest was not retrieved over HTTPS from the origin named in
+  `manifest.site`.
+
+The last condition matters: a manifest describing origin A but served from
+origin B asserts nothing, because the party making the assertion cannot be
+identified. Consumers MUST check this.
+
+### 9b.4 Attribution
+
+Repeating an ASSERTED claim to a user requires attribution that makes the
+epistemic state recoverable. The attribution MUST identify `manifest.site` as
+the source and MUST NOT present the claim as independently established.
+Wording is not prescribed; the requirement is that a reader could tell the
+difference between "this organisation says X" and "X".
+
+This is the difference between the format being useful and the format
+laundering marketing copy into apparent fact.
+
+### 9b.5 What the freshness record cannot do
+
+`manifest.verification` is unauthenticated. It is a field in a document the
+publisher controls entirely. A publisher that never runs a check can write
+`evidence_present` equal to `evidence_total` and a current `checked_at`. No
+part of this specification prevents that.
+
+It is nonetheless load-bearing, for one reason: **it is falsifiable at the cost
+of a single request.** Any consumer can retrieve one evidence URL and compare.
+A publisher reporting checks it did not run is detectable by the first consumer
+that spot-checks, and the cost of detection is that the domain's assertions
+stop being worth reading.
+
+Consumers SHOULD spot-check. A reasonable policy is to verify one randomly
+chosen evidence record per manifest per fetch, which costs one extra request
+and makes systematic fabrication untenable. Consumers that never verify
+anything are relying on other consumers doing so.
+
+Three specific limits, stated because implementers will otherwise assume
+otherwise:
+
+- **No rollback protection.** A publisher, a compromised CDN, or a stale cache
+  can serve an older manifest whose `checked_at` was accurate when written.
+  Nothing here detects that. A consumer that has previously seen a manifest
+  from an origin SHOULD reject a later one whose `checked_at` is earlier.
+- **No binding between the freshness record and the evidence.** `checked_at`
+  is not covered by any hash or signature. It is a claim about a process,
+  not a commitment to content.
+- **`evidence_present` is an aggregate.** It says how many quotes were found
+  across the whole manifest, not which. Per-record `last_seen` is the only
+  field that speaks to a specific piece of evidence, and it is the one a
+  consumer should key on.
+
+### 9b.6 Not machine-checkable
+
+"High-impact" and "hard to reverse" appear in §9b.2 and are properties of the
+consumer's situation, not of the manifest. They cannot be tested by a
+conformance suite and are therefore guidance, not conformance criteria. The
+testable requirements are those in §9b.2 and §9b.3, which depend only on fields
+in the document.
 
 ## 10. Size and limits
 
@@ -294,14 +457,58 @@ This project is not a W3C standard and is not endorsed by any standards body.
 
 ## 14. Conformance
 
-A **conforming manifest** validates against `schema/ai-evidence-manifest.schema.json` and satisfies the REQUIRED clauses here.
+### 14.1 Conforming manifest
 
-A **conforming consumer**:
+A conforming manifest validates against `schema/ai-evidence-manifest.schema.json`
+and satisfies the REQUIRED clauses of this document.
 
-- MUST validate against the schema before use;
-- MUST treat all contents as untrusted input;
-- MUST NOT treat publisher assertions as independently verified facts;
+### 14.2 Conforming generator
+
+A conforming generator:
+
+- MUST NOT emit an evidence record whose `text` it did not find, verbatim after
+  §5 normalization, in the retrieved source (§9);
+- MUST compute `integrity.sha256` over the normalized text (§5);
+- MUST encode `locator.fragment` per §5.1;
+- MUST mark records it has not had confirmed by a person as
+  `method: automatically-generated` with `verified: false` (§8);
+- MUST write byte-identical content to every location it serves (§2.1).
+
+Each of these is mechanically testable and exercised by the test suite.
+
+### 14.3 Conforming consumer
+
+A conforming consumer:
+
+- MUST validate against the schema before reading any field;
+- MUST treat every field as untrusted input;
+- MUST determine epistemic state per §9b.3 before use, and MUST NOT perform an
+  operation without the state §9b.2 requires for it;
+- MUST attribute an ASSERTED claim to `manifest.site` when repeating it (§9b.4);
+- MUST NOT treat any state defined here as establishing that a claim is true;
 - MUST NOT execute any content from a manifest;
-- MAY rely on a claim without refetching its evidence when `manifest.verification` is present, `checked_at` is within `recheck_interval_days`, `evidence_present` equals `evidence_total`, and the entry carries a `last_seen`;
-- SHOULD retrieve and check the referenced evidence when any of those conditions fails, or when the decision is high-impact and hard to reverse;
+- MUST reject a manifest served from an origin other than `manifest.site`
+  (§9b.3);
+- SHOULD reject a manifest whose `checked_at` precedes one it has already seen
+  from the same origin (§9b.5);
+- SHOULD spot-check at least one evidence record per manifest (§9b.5);
 - SHOULD enforce the limits in §10 and the protections in [SECURITY.md](SECURITY.md).
+
+### 14.4 What this specification does not define
+
+Stated so implementers do not assume otherwise:
+
+- **Authentication of the publisher.** There is no signature. A manifest served
+  over HTTPS from an origin carries that origin's transport authenticity and
+  nothing more. `publisher.same_as` is informational; anyone can list any URL.
+- **Rollback detection.** Nothing binds a manifest to a point in time in a way a
+  consumer can check. §9b.5 gives a heuristic, not a guarantee.
+- **Conflict resolution.** Two claims in one manifest may contradict each other,
+  and two manifests from different origins certainly may. This document defines
+  no precedence. A consumer encountering a contradiction holds two publisher
+  assertions and should treat the contradiction as information.
+- **Partial validity.** Validation is all-or-nothing. A manifest with one
+  schema-invalid claim is not a manifest with one bad claim; it is an invalid
+  document, and §9b.3 gives it no state.
+- **Completeness.** A manifest is not a closed-world description. Absence of a
+  claim means nothing.

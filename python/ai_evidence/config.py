@@ -16,6 +16,11 @@ from .fetch_safe import fetch_safe, normalize_input_url
 
 CONFIG_FILENAME = "ai-evidence.config.json"
 
+# RFC 8615: site-wide metadata defined by a convention belongs under
+# /.well-known/. The short root alias is optional and must be identical.
+WELL_KNOWN_PATH = ".well-known/ai-evidence.json"
+ALIAS_PATH = "ai.json"
+
 CONFIG_DEFAULTS = {
     "discover": "sitemap",       # sitemap | links | none
     "include": [],               # path patterns to keep; empty means everything discovered

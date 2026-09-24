@@ -4,7 +4,7 @@ import path from 'node:path';
 import { validateManifest, parseManifest, stampVerification, LIMITS } from '../reference-implementation/validate.js';
 import { extractFromSite, extractFromPage, toManifest } from '../reference-implementation/extract.js';
 import { fetchSafe, FetchRefused, normalizeInputUrl } from '../reference-implementation/fetch-safe.js';
-import { loadConfig, writeConfig, initConfig, generate, CONFIG_FILENAME } from '../reference-implementation/config.js';
+import { loadConfig, writeConfig, initConfig, generate, CONFIG_FILENAME, WELL_KNOWN_PATH, ALIAS_PATH } from '../reference-implementation/config.js';
 import { repairManifest, SIMILARITY_THRESHOLD } from '../reference-implementation/repair.js';
 
 const C = process.stdout.isTTY
@@ -23,7 +23,7 @@ Usage:
 
 Typical use:
   ai-evidence init https://example.com
-  ai-evidence generate              # writes ai.json — commit it, serve it at /ai.json
+  ai-evidence generate              # writes the manifest; commit it and serve it
 
 Validate options:
   --offline        Do not fetch evidence URLs (default for local files)
@@ -44,7 +44,10 @@ Repair options:
 
 Generate options:
   --config <file>  Config to read (default ai-evidence.config.json)
-  --out <file>     Manifest to write (default ai.json)
+  --out <dir|file> Where to write (default: the site root of the current
+                   directory, producing .well-known/ai-evidence.json and the
+                   short alias ai.json)
+  --no-alias       Write only the canonical .well-known path
 
 Extract options:
   --out <file>     Write the manifest (default: stdout)
@@ -70,12 +73,32 @@ function parseArgs(argv) {
 
 const isUrl = s => /^https?:\/\//i.test(s);
 
+/**
+ * Given a bare origin, try the canonical well-known path first and fall back to
+ * the short alias, per SPEC 2.1. A full URL is fetched as given.
+ */
+async function resolveManifestUrl(target) {
+  const u = new URL(target);
+  if (u.pathname !== '/' && u.pathname !== '') return [target];
+  return [new URL('/' + WELL_KNOWN_PATH, u).toString(), new URL('/' + ALIAS_PATH, u).toString()];
+}
+
 async function readManifest(target) {
   if (isUrl(target)) {
-    const res = await fetchSafe(target, { accept: 'application/json' });
+    const candidates = await resolveManifestUrl(target);
+    let res, lastError;
+    for (const candidate of candidates) {
+      try {
+        res = await fetchSafe(candidate, { accept: 'application/ai-evidence+json, application/json' });
+        break;
+      } catch (e) { lastError = e; }
+    }
+    if (!res) throw lastError;
     if (res.status < 200 || res.status >= 300) throw new Error(`HTTP ${res.status} fetching ${target}`);
+    // SPEC 2.2: never reject on content type alone; misconfigured static hosts
+    // are common and the document is self-describing.
     if (!/json/i.test(res.contentType)) {
-      process.stderr.write(C.yellow(`warning: ${target} served as "${res.contentType || 'no content-type'}"; expected application/json\n`));
+      process.stderr.write(C.yellow(`warning: ${res.url} served as "${res.contentType || 'no content-type'}"; expected application/ai-evidence+json or application/json\n`));
     }
     return { raw: res.body, source: res.url };
   }
@@ -203,13 +226,19 @@ async function cmdGenerate(args) {
     { method: 'generated-from-source', recheckIntervalDays: cfg.recheckIntervalDays ?? 7 });
 
   const json = JSON.stringify(res.manifest, null, 2) + '\n';
-  fs.writeFileSync(out, json);
-  process.stderr.write(`\n  wrote ${C.bold(out)} — ${res.manifest.claims.length} claims, ${(Buffer.byteLength(json) / 1024).toFixed(1)} KiB\n`);
+  const targets = args.flags.out
+    ? [args.flags.out]
+    : args.flags['no-alias'] ? [WELL_KNOWN_PATH] : [WELL_KNOWN_PATH, ALIAS_PATH];
+  for (const t of targets) {
+    fs.mkdirSync(path.dirname(path.resolve(t)), { recursive: true });
+    fs.writeFileSync(t, json);
+  }
+  process.stderr.write(`\n  wrote ${C.bold(targets.join(' and '))} — ${res.manifest.claims.length} claims, ${(Buffer.byteLength(json) / 1024).toFixed(1)} KiB\n`);
   if (res.pinned) process.stderr.write(C.dim(`  ${res.pinned} pinned claim(s) kept from the config\n`));
   const v = res.manifest.manifest.verification;
   process.stderr.write(C.dim(`  ${v.evidence_present}/${v.evidence_total} quotes read from the live pages and confirmed present\n`));
   process.stderr.write(C.dim(`  what a human adds: which claims matter, and whether the types are right\n`));
-  process.stderr.write(C.dim(`  serve it at ${new URL('/ai.json', cfg.site)}\n\n`));
+  process.stderr.write(DIM(`  serve it at ${new URL('/' + WELL_KNOWN_PATH, cfg.site)}\n\n`));
   for (const e of res.errors) process.stderr.write(C.yellow(`  skipped ${e.url}: ${e.error}\n`));
   if (res.clientRendered.length) {
     process.stderr.write(C.yellow(`\n  ${res.clientRendered.length} page(s) returned no claims and look client-rendered:\n`));

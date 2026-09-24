@@ -137,10 +137,6 @@ export async function validateManifest(manifest, opts = {}) {
         findings.push(warn('unverified', 'no verification.verified_at; freshness is unknown', at));
       }
 
-      if (ev.verification?.verified === true && ev.verification.method === 'automatically-generated') {
-        findings.push(warn('auto-verified', 'verified:true with method automatically-generated — machine extraction is not confirmation', `${at}/verification`));
-      }
-
       if (ev.text.length > o.limits.maxTextChars) {
         findings.push(warn('size', `evidence text is ${ev.text.length} chars, above the recommended ${o.limits.maxTextChars}`, `${at}/text`));
       }

@@ -36,5 +36,5 @@ each language substitutes.
 
 ## Licence
 
-The tooling is Elastic License 2.0; the specification and schema are
-Apache-2.0. See `NOTICE` in the repository root.
+[Apache-2.0](https://www.apache.org/licenses/LICENSE-2.0) — specification,
+schema and both reference implementations alike.

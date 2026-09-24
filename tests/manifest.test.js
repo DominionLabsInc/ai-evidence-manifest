@@ -97,8 +97,13 @@ describe('semantic checks', () => {
   test('warns when integrity is absent', async () => {
     assert.ok(codes(await check('no-integrity.json')).includes('no-integrity'));
   });
-  test('warns when machine extraction claims to be verified', async () => {
-    assert.ok(codes(await check('auto-verified.json')).includes('auto-verified'));
+  test('rejects machine extraction claiming to be verified', async () => {
+    // verified:true with automatically-generated is contradictory. It used to
+    // be a warning; the schema now forbids it, so the two fields cannot
+    // disagree in a valid document.
+    const r = await check('auto-verified.json');
+    assert.equal(r.valid, false);
+    assert.ok(codes(r).includes('schema'));
   });
   test('warns on selector-only locators', async () => {
     assert.ok(codes(await check('selector-only.json')).includes('selector-only'));

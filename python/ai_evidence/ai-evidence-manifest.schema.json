@@ -242,7 +242,8 @@
       "additionalProperties": false,
       "properties": {
         "verified": {
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Whether a person confirmed this entry. MUST NOT be true when method is automatically-generated: machine extraction is not confirmation."
         },
         "verified_at": {
           "$ref": "#/$defs/date"
@@ -250,6 +251,20 @@
         "method": {
           "$ref": "#/$defs/verificationMethod"
         }
+      },
+      "not": {
+        "properties": {
+          "verified": {
+            "const": true
+          },
+          "method": {
+            "const": "automatically-generated"
+          }
+        },
+        "required": [
+          "verified",
+          "method"
+        ]
       }
     },
     "claimType": {

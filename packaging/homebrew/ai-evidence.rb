@@ -6,7 +6,7 @@ class AiEvidence < Formula
   homepage "https://github.com/DominionLabsInc/ai-evidence-manifest"
   url "https://github.com/DominionLabsInc/ai-evidence-manifest/archive/refs/tags/v0.1.0.tar.gz"
   sha256 "REPLACE_ON_RELEASE"
-  license :cannot_represent  # Elastic-2.0 tooling, Apache-2.0 specification; see NOTICE
+  license "Apache-2.0"
   head "https://github.com/DominionLabsInc/ai-evidence-manifest.git", branch: "main"
 
   depends_on "node"

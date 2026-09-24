@@ -142,7 +142,6 @@ class TestValidate:
         ("duplicate-ids.json", "duplicate-id"),
         ("hash-mismatch.json", "integrity-mismatch"),
         ("stale.json", "stale"),
-        ("auto-verified.json", "auto-verified"),
         ("selector-only.json", "selector-only"),
     ])
     def test_detects(self, fixture, code):
@@ -153,6 +152,9 @@ class TestValidate:
     @pytest.mark.parametrize("fixture", [
         "missing-required.json", "invalid-url-http.json", "invalid-url-javascript.json",
         "malformed-date.json", "unknown-type.json", "unknown-field.json", "no-claims.json",
+        # verified:true with automatically-generated is contradictory; the
+        # schema forbids it so the two fields cannot disagree.
+        "auto-verified.json",
     ])
     def test_rejects(self, fixture):
         manifest, nbytes = parse_manifest((FIXTURES / fixture).read_text())

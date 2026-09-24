@@ -31,6 +31,25 @@ function jsOutput() {
   return out;
 }
 
+describe('shared artifacts have not drifted', () => {
+  // The Python package bundles copies so it works when installed from a wheel,
+  // with no repository present. Copies go stale silently — this one did, and a
+  // schema change shipped to one implementation and not the other.
+  const pairs = [
+    ['schema/ai-evidence-manifest.schema.json', 'python/ai_evidence/ai-evidence-manifest.schema.json'],
+    ['shared/patterns.json', 'python/ai_evidence/patterns.json']
+  ];
+  for (const [source, copy] of pairs) {
+    test(`${copy} matches ${source}`, { skip: !fs.existsSync(path.join(ROOT, copy)) }, () => {
+      assert.equal(
+        fs.readFileSync(path.join(ROOT, copy), 'utf8'),
+        fs.readFileSync(path.join(ROOT, source), 'utf8'),
+        `${copy} is stale — run: cp ${source} ${copy}`
+      );
+    });
+  }
+});
+
 describe('cross-implementation conformance', () => {
   const js = jsOutput();
 

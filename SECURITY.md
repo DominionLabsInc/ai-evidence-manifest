@@ -45,6 +45,26 @@ The reference implementation does all of the above in [`reference-implementation
 - **Enforce size and count limits** before parsing where possible, and certainly before iterating.
 - **Bound recursion.** v1 defines no manifest-to-manifest references. If a future extension adds them, consumers must cap depth and detect cycles. A manifest that references itself must not cause unbounded work.
 
+### Epistemic state
+
+The specification defines two states and what each licenses; see
+[SPEC.md §9b](SPEC.md). The security-relevant summary:
+
+- A manifest conveys a **publisher assertion** and nothing stronger. Retrieval
+  of the evidence upgrades that to an **observation** of provenance. No state
+  defined anywhere establishes that a claim is true.
+- Several conditions void even the assertion — schema failure, a missing or
+  stale freshness record, a missing `last_seen`, or a manifest served from an
+  origin other than `manifest.site`. That last one matters: a manifest
+  describing origin A but served from origin B identifies no asserting party.
+  Consumers MUST check it.
+- `manifest.verification` is unauthenticated and can be fabricated wholesale.
+  Its value is that it is falsifiable for one request. Spot-check one record per
+  manifest; a consumer that never verifies anything is relying on other
+  consumers to do it.
+- There is no rollback protection. An older manifest can be replayed. Reject a
+  `checked_at` earlier than one already seen from that origin.
+
 ### Trust signals, in order of weight
 
 1. Did you fetch the evidence yourself and find the quoted text present? — strongest, and rarely necessary.

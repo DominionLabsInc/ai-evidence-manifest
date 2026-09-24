@@ -55,18 +55,55 @@ not have:
 
 ### Licensing
 
-Split deliberately. `SPEC.md`, `schema/`, `shared/` and `examples/` are
-Apache-2.0; the tooling is Elastic License 2.0. A format that needs permission
-to implement does not get adopted, and an unadopted format protects nothing —
-so the specification is free and the tooling is where commercial terms apply.
-The Elastic License permits commercial use and modification but not offering
-the tooling to third parties as a hosted service. It is source-available, not
-OSI open source.
+Apache-2.0 throughout — specification, schema, both implementations, examples.
+
+An earlier draft split it: Apache-2.0 for the specification, Elastic License 2.0
+for the tooling, to stop a competitor reselling the tooling as a service. That
+was the wrong trade for a proposed convention. A source-available licence is not
+OSI open source, which puts it outside some organisations' procurement rules and
+out of Linux distributions entirely, and it makes the reference implementation
+something to be wary of rather than something to copy. For a format whose only
+value is adoption, friction in the reference implementation is friction on the
+format.
+
+### Standards and conformance audit
+
+Reviewed against the standards this would have to live alongside. Fixed:
+
+- **`/ai.json` moved to `/.well-known/ai-evidence.json`.** RFC 8615 reserves
+  `/.well-known/` for exactly this, and says new conventions should not take
+  root paths. `robots.txt` and `sitemap.xml` sit at the root because they
+  predate the registry. A root path is not a proposal's to claim, and a site
+  may already use it. The short alias remains, optional and non-canonical, and
+  must be byte-identical; consumers try the well-known path first.
+- **Media type `application/ai-evidence+json`** (RFC 6839 structured suffix),
+  unregistered for now, with `application/json` accepted and content type never
+  a reason to reject.
+- **Link relation expressed as a URI.** RFC 8288 requires a relation outside the
+  IANA registry to be a URI; `rel="ai-evidence"` was non-conforming.
+- **Caching specified.** `max-age` no greater than the recheck interval, and
+  `checked_at` explicitly is not a cache directive.
+- **`verified: true` with `automatically-generated` is now a schema error**
+  rather than a warning. Two fields holding one fact could disagree.
+- **Bundled-copy drift.** The Python wheel carries its own schema and pattern
+  copies so it works without the repository; the schema copy had already gone
+  stale. A test now fails on drift, and `npm run sync` refreshes them.
+
+Documented as known limits rather than fixed: no publisher authentication, no
+rollback detection, no conflict-resolution rules, all-or-nothing validation, and
+no completeness guarantee. See SPEC 14.4.
 
 ### Design decisions worth recording
 
 - **Verification lives in one place.** An earlier draft carried `verified_at` directly on evidence *and* a `verification` object. Two homes for one fact invites drift, so only the object exists.
 - **Hashes cover the quoted text, not the page.** Hashing whole pages produces false alarms on every unrelated edit. Hashing the normalized quote detects exactly the change that matters.
+- **"Read the claim, done" was not a specification.** The README said
+  `GET /ai.json -> read the claim -> done`, which reads as marketing and
+  under-specifies the trust boundary in the permissive direction, just as the
+  earlier "verify everything" text did in the restrictive one. Replaced with a
+  protocol-level treatment: two named states, ASSERTED and OBSERVED, a table of
+  which operations each licenses, and explicit conditions under which a manifest
+  conveys no state at all.
 - **Reading the manifest is the normal path.** An earlier draft had a consumer fetch the manifest, then retrieve and re-verify every referenced source. That is incoherent: the manifest records the result of checking its own evidence, so repeating all of it gains nothing over crawling and the format saves no work at all. The evidence exists to make a claim checkable, not to require that every reader check it. Refetching is now the exception — when the freshness record is stale or incomplete, when an entry has no `last_seen`, or when a decision is high-impact and hard to reverse. This rests on a publisher assertion, which is acceptable because it is falsifiable for the price of one request.
 - **A spec-compliant parser, not regular expressions.** HTML reading began as regex matching to avoid dependencies. For a verification tool that is the wrong trade: mis-parsed markup makes a quote that is present read as absent, so `check` reports drift that does not exist. False alarms are worse than missed evidence, so parse5 was adopted.
 - **Silence is a bad answer.** Returning "no claims found" for a client-rendered page leads a publisher to conclude their site has nothing worth publishing. The condition is now detected and explained.

@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Reference tooling for the AI Evidence Manifest: a static /ai.json file linking website claims to the first-party evidence supporting them."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "LicenseRef-Elastic-2.0" }
+license = "Apache-2.0"
 authors = [{ name = "Dominion Labs, Inc.", email = "info@dmnlabs.org" }]
 keywords = ["ai", "evidence", "provenance", "manifest", "agents", "json-schema"]
 classifiers = [
@@ -17,6 +17,7 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Topic :: Internet :: WWW/HTTP",
   "Topic :: Software Development :: Libraries",
+  "License :: OSI Approved :: Apache Software License",
 ]
 dependencies = [
   "html5lib>=1.1",

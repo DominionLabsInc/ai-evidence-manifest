@@ -1,8 +1,8 @@
 {
   "name": "ai-evidence",
   "version": "0.1.0",
-  "description": "Reference tooling for the AI Evidence Manifest: a static /ai.json file linking website claims to the first-party evidence supporting them. The specification itself is Apache-2.0 and free to implement.",
-  "license": "LicenseRef-Elastic-2.0",
+  "description": "Reference tooling for the AI Evidence Manifest: a static /ai.json file linking website claims to the first-party evidence supporting them.",
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "ai-evidence": "./validator/cli.js"
@@ -17,7 +17,6 @@
     "shared/",
     "SPEC.md",
     "LICENSE",
-    "LICENSE-APACHE-2.0",
     "NOTICE"
   ],
   "engines": {
@@ -25,7 +24,8 @@
   },
   "scripts": {
     "test": "node --test tests/",
-    "validate:examples": "node validator/cli.js validate examples/ai.json --offline --strict"
+    "validate:examples": "node validator/cli.js validate examples/ai.json --offline --strict",
+    "sync": "sh tools/dev/sync-shared.sh"
   },
   "dependencies": {
     "ajv": "^8.17.1",

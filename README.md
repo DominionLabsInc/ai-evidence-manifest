@@ -15,9 +15,9 @@ Provenance
 You add one file to your site, the same way you add `robots.txt` or `sitemap.xml`:
 
 ```
-https://example.com/robots.txt      what crawlers may fetch
-https://example.com/sitemap.xml     which pages exist
-https://example.com/ai.json         which claims matter, and where the evidence is
+/robots.txt                         what crawlers may fetch
+/sitemap.xml                        which pages exist
+/.well-known/ai-evidence.json       which claims matter, and where the evidence is
 ```
 
 It is a plain static file. Nothing runs, nothing is added to your pages, no account and no service is involved.
@@ -160,42 +160,41 @@ Link: </ai.json>; rel="ai-evidence"
 ## How an agent uses it
 
 ```
-GET /ai.json  ->  read the claim  ->  done
+GET /.well-known/ai-evidence.json
 ```
 
-That is the normal path, and it is the point of the format. The manifest already
-carries the result of checking every quote against the live site, so a consumer
-that refetches all of it is redoing work the publisher has done and recorded.
+What that gets you is a **publisher assertion**: this organisation says claim C
+is supported by quote Q at URL U, and says it last confirmed Q present at time
+T. Every part of that, including T, is the publisher's word.
 
-```jsonc
-"verification": {
-  "checked_at": "2026-09-24T17:38:37Z",
-  "method": "automated-recheck",
-  "evidence_total": 53,
-  "evidence_present": 53,
-  "recheck_interval_days": 7
-}
-```
+That is genuinely useful — it is how an agent learns what a site claims, and
+where the support is, without crawling. It is not the same as knowing C is
+true, and the specification is precise about the difference because getting it
+wrong in either direction ruins the format.
 
-Read that first. If the check is recent, complete, and the entry you care about
-carries a `last_seen`, the claim stands on evidence that was confirmed present —
-use it.
+**Retrieval is what changes the state.** Fetch U, find Q, and you have moved
+from *the publisher says Q is there* to *Q was there*. That still does not make
+C true; it makes the provenance observed rather than asserted.
 
-**Go and look at the source when the file tells you to, or when the stakes say to:**
+Roughly:
 
-- `checked_at` is older than `recheck_interval_days` — the publisher's own
-  freshness promise has lapsed
-- `evidence_present` is below `evidence_total` — the publisher is telling you
-  something has drifted
-- the entry has no `last_seen` — that specific quote was not confirmed
-- the decision is high-stakes and hard to reverse, and you want to see it yourself
+| You want to | You need |
+|---|---|
+| Find what a site claims, and where the evidence is | the manifest |
+| Rank, filter or route on a claim | the manifest |
+| Repeat a claim **attributed to the publisher** | the manifest |
+| Repeat it as your own finding, or act on it | fetch the evidence |
 
-Then it is one targeted fetch, not a crawl: the `url` plus a text fragment takes
-you to the sentence.
+[SPEC.md §9b](SPEC.md) states this as a protocol rather than a rule of thumb:
+two named states, which operations each licenses, and the exact conditions
+under which a manifest conveys no state at all.
 
-Spot-checking is also how the system stays honest. The freshness record is a
-publisher assertion, and anyone can check a single quote cheaply. A publisher
-reporting checks it never ran is caught by one request.
+**The freshness record is falsifiable, not trustworthy.** `manifest.verification`
+says how many quotes the publisher last found present, and when. A publisher
+that never checks can write whatever it likes there. What makes it useful is
+that any consumer can disprove it with one request — so spot-check. A consumer
+that verifies one random record per manifest costs itself almost nothing and
+makes systematic fabrication untenable.
 
 ## Repository
 
@@ -220,14 +219,9 @@ Feedback on the data model, the security model and the discovery mechanism is th
 
 ## Licence
 
-Two licences, deliberately:
+[Apache-2.0](LICENSE), for everything: the specification, the schema, both
+reference implementations, the examples.
 
-| What | Licence | What you may do |
-|---|---|---|
-| `SPEC.md`, `schema/`, `shared/`, `examples/` | [Apache-2.0](LICENSE-APACHE-2.0) | Implement the format however you like, in any language, commercial or not, without asking |
-| `reference-implementation/`, `validator/`, `python/`, `tools/` | [Elastic License 2.0](LICENSE) | Read, use, modify and redistribute the tooling, including commercially and inside your own products — but not offer it to third parties as a hosted or managed service |
-
-A convention is worth nothing if implementing it needs permission, so the
-specification is free. The tooling is source-available rather than OSI open
-source; see [NOTICE](NOTICE) for exactly which files fall where, and note that
-some organisations treat non-OSI licences differently in procurement.
+A convention is worth nothing if implementing it requires permission. Write
+your own generator, validator or consumer in any language, for any purpose,
+commercial or not. The patent grant is part of that guarantee.
