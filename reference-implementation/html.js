@@ -1,78 +1,127 @@
+import { parse } from 'parse5';
+
 /**
- * Small, dependency-free HTML reading helpers.
+ * HTML reading, built on parse5 — the same spec-compliant parser jsdom uses.
  *
- * This is deliberately not a full HTML parser. It exists to read text and
- * declared metadata out of a fetched page well enough to (a) confirm a quote is
- * present and (b) propose candidate evidence. It never executes anything, and
- * script/style content is discarded before any text is returned.
+ * An earlier version did this with regular expressions. That was wrong for a
+ * verification tool: mis-parsed markup (an attribute containing `>`, unclosed
+ * tags, CDATA) can mangle a paragraph, which makes a quote that IS on the page
+ * read as absent and causes `check` to report drift that does not exist. False
+ * alarms are worse than missed evidence, so correctness wins over having no
+ * dependencies.
  *
- * Known limits, stated plainly: content rendered only by client-side JavaScript
- * is invisible here, and pathological markup may be read imperfectly. Both
- * failure modes are safe — they cause evidence to be missed, never fabricated.
+ * Nothing here executes anything. Script, style, noscript, template and svg
+ * subtrees are skipped entirely before any text is returned.
  */
 
-const NAMED_ENTITIES = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
-  mdash: '—', ndash: '–', hellip: '…', rsquo: '’',
-  lsquo: '‘', ldquo: '“', rdquo: '”', copy: '©',
-  reg: '®', trade: '™', deg: '°', times: '×', middot: '·'
-};
+const SKIP = new Set(['script', 'style', 'noscript', 'template', 'svg', 'head', 'iframe', 'object', 'canvas']);
+const BLOCK = new Set(['h1', 'h2', 'h3', 'h4', 'p', 'li', 'blockquote', 'dd', 'figcaption', 'td', 'th']);
+const SECTIONING = new Set(['section', 'article', 'main', 'div', 'header', 'aside', 'nav', 'footer']);
 
-export function decodeEntities(s) {
-  return s
-    .replace(/&#x([0-9a-f]+);/gi, (_, h) => safeCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d) => safeCodePoint(parseInt(d, 10)))
-    .replace(/&([a-z][a-z0-9]*);/gi, (m, name) => NAMED_ENTITIES[name.toLowerCase()] ?? m);
+const isElement = n => typeof n.tagName === 'string';
+const attr = (node, name) => node.attrs?.find(a => a.name === name)?.value ?? null;
+const collapse = s => s.replace(/\s+/gu, ' ').trim();
+
+function* walk(node, ancestors = []) {
+  for (const child of node.childNodes ?? []) {
+    if (isElement(child)) {
+      if (SKIP.has(child.tagName)) continue;
+      yield { node: child, ancestors };
+      yield* walk(child, [...ancestors, child]);
+    } else {
+      yield { node: child, ancestors };
+    }
+  }
 }
 
-function safeCodePoint(cp) {
-  if (!Number.isFinite(cp) || cp < 0 || cp > 0x10ffff) return '�';
-  if (cp >= 0xd800 && cp <= 0xdfff) return '�';
-  try { return String.fromCodePoint(cp); } catch { return '�'; }
+// Elements that imply a break in the text. Without these, adjacent blocks run
+// together ("sign.unclosed") and a quote can appear to span a boundary it never
+// crossed.
+const SEPARATES = new Set([
+  ...BLOCK, ...SECTIONING, 'br', 'hr', 'tr', 'ul', 'ol', 'dl', 'dt', 'table',
+  'figure', 'address', 'pre', 'form', 'label', 'option', 'h5', 'h6'
+]);
+
+/** Concatenated text of a subtree, skipping non-content elements. */
+function textOf(node) {
+  if (node.nodeName === '#text') return node.value ?? '';
+  if (isElement(node) && SKIP.has(node.tagName)) return '';
+  let out = '';
+  for (const child of node.childNodes ?? []) {
+    if (isElement(child) && SEPARATES.has(child.tagName)) out += ' ';
+    out += textOf(child);
+    if (isElement(child) && SEPARATES.has(child.tagName)) out += ' ';
+  }
+  return out;
 }
 
-/** Remove elements whose contents are never visible text. */
-function stripNonContent(html) {
-  return html
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<script\b[^>]*>[\s\S]*?<\/script\s*>/gi, ' ')
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style\s*>/gi, ' ')
-    .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript\s*>/gi, ' ')
-    .replace(/<template\b[^>]*>[\s\S]*?<\/template\s*>/gi, ' ')
-    .replace(/<svg\b[^>]*>[\s\S]*?<\/svg\s*>/gi, ' ');
+function documentOf(html) {
+  return typeof html === 'string' ? parse(html) : html;
 }
 
+function findAll(doc, predicate) {
+  const out = [];
+  for (const { node, ancestors } of walk(doc)) {
+    if (isElement(node) && predicate(node)) out.push({ node, ancestors });
+  }
+  return out;
+}
+
+/** All visible text on the page, whitespace-collapsed. */
 export function extractText(html) {
-  return decodeEntities(stripNonContent(html).replace(/<[^>]+>/g, ' '))
-    .replace(/\s+/gu, ' ')
-    .trim();
+  const doc = documentOf(html);
+  const body = findAll(doc, n => n.tagName === 'body')[0]?.node;
+  return collapse(textOf(body ?? doc));
 }
 
 export function extractTitle(html) {
-  const m = stripNonContent(html).match(/<title[^>]*>([\s\S]*?)<\/title\s*>/i);
-  return m ? decodeEntities(m[1]).replace(/\s+/gu, ' ').trim() : null;
+  const t = findAll(documentOf(html), n => n.tagName === 'title')[0]?.node;
+  // <title> sits inside <head>, which walk() skips, so read it from the raw tree
+  if (t) return collapse(textOf(t)) || null;
+  const doc = documentOf(html);
+  const found = deepFind(doc, n => isElement(n) && n.tagName === 'title');
+  return found ? collapse(textOf(found)) || null : null;
+}
+
+function deepFind(node, predicate) {
+  for (const child of node.childNodes ?? []) {
+    if (predicate(child)) return child;
+    const nested = deepFind(child, predicate);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function deepFindAll(node, predicate, out = []) {
+  for (const child of node.childNodes ?? []) {
+    if (predicate(child)) out.push(child);
+    deepFindAll(child, predicate, out);
+  }
+  return out;
 }
 
 /** name= and property= meta tags, keyed by whichever attribute was present. */
 export function extractMeta(html) {
   const out = {};
-  for (const m of stripNonContent(html).matchAll(/<meta\b([^>]*)>/gi)) {
-    const attrs = m[1];
-    const key = attrs.match(/\b(?:name|property)\s*=\s*["']([^"']+)["']/i)?.[1];
-    const content = attrs.match(/\bcontent\s*=\s*["']([\s\S]*?)["']/i)?.[1];
-    if (key && content != null) out[key.toLowerCase()] = decodeEntities(content).replace(/\s+/gu, ' ').trim();
+  for (const m of deepFindAll(documentOf(html), n => isElement(n) && n.tagName === 'meta')) {
+    const key = attr(m, 'name') ?? attr(m, 'property');
+    const content = attr(m, 'content');
+    if (key && content != null) out[key.toLowerCase()] = collapse(content);
   }
   return out;
 }
 
-/** Parsed application/ld+json blocks. Unparseable blocks are skipped, not guessed at. */
+/** Parsed application/ld+json blocks. Unparseable blocks are skipped, never guessed at. */
 export function extractJsonLd(html) {
   const out = [];
-  for (const m of html.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script\s*>/gi)) {
+  const scripts = deepFindAll(documentOf(html), n =>
+    isElement(n) && n.tagName === 'script' && /application\/ld\+json/i.test(attr(n, 'type') ?? ''));
+  for (const s of scripts) {
+    const raw = s.childNodes?.map(c => c.value ?? '').join('').trim();
+    if (!raw) continue;
     try {
-      const parsed = JSON.parse(m[1].trim());
-      for (const node of flattenGraph(parsed)) out.push(node);
-    } catch { /* a malformed block is ignored; we never infer its contents */ }
+      for (const node of flattenGraph(JSON.parse(raw))) out.push(node);
+    } catch { /* malformed: ignored rather than inferred */ }
   }
   return out;
 }
@@ -85,31 +134,49 @@ function flattenGraph(node) {
   return [];
 }
 
-/**
- * Visible text blocks with their nearest element id, used to locate candidate
- * evidence and to build stable locators.
- */
+/** Visible text blocks with their own id and nearest sectioning ancestor id. */
 export function extractBlocks(html) {
-  const cleaned = stripNonContent(html);
+  const doc = documentOf(html);
   const blocks = [];
-  const re = /<(h1|h2|h3|h4|p|li|blockquote|dd|figcaption|td)\b([^>]*)>([\s\S]*?)<\/\1\s*>/gi;
-  for (const m of cleaned.matchAll(re)) {
-    const [, tag, attrs, inner] = m;
-    const text = decodeEntities(inner.replace(/<[^>]+>/g, ' ')).replace(/\s+/gu, ' ').trim();
+  for (const { node, ancestors } of walk(doc)) {
+    if (!isElement(node) || !BLOCK.has(node.tagName)) continue;
+    const text = collapse(textOf(node));
     if (!text) continue;
-    blocks.push({
-      tag: tag.toLowerCase(),
-      id: attrs.match(/\bid\s*=\s*["']([^"']+)["']/i)?.[1] ?? null,
-      section: nearestSectionId(cleaned, m.index),
-      text
-    });
+    let section = null;
+    for (let i = ancestors.length - 1; i >= 0; i--) {
+      const a = ancestors[i];
+      if (SECTIONING.has(a.tagName) && attr(a, 'id')) { section = attr(a, 'id'); break; }
+    }
+    blocks.push({ tag: node.tagName, id: attr(node, 'id'), section, text });
   }
   return blocks;
 }
 
-/** id of the closest enclosing element that has one, searching backwards. */
-function nearestSectionId(html, index) {
-  const before = html.slice(0, index);
-  const matches = [...before.matchAll(/<(?:section|article|main|div|header)\b[^>]*\bid\s*=\s*["']([^"']+)["']/gi)];
-  return matches.length ? matches[matches.length - 1][1] : null;
+/**
+ * Does this look like a page whose content is assembled in the browser?
+ *
+ * Fetching alone cannot see client-rendered content. Reporting "no claims
+ * found" without saying why leads a publisher to conclude their site has
+ * nothing worth publishing, so this is surfaced explicitly.
+ */
+export function looksClientRendered(html) {
+  const doc = documentOf(html);
+  const text = extractText(doc);
+  const scripts = deepFindAll(doc, n => isElement(n) && n.tagName === 'script');
+  const scriptBytes = scripts.reduce((n, s) => n + (attr(s, 'src') ? 0 : (s.childNodes?.[0]?.value?.length ?? 0)), 0);
+  const roots = deepFindAll(doc, n => isElement(n) && ['root', 'app', '__next', '__nuxt'].includes(attr(n, 'id') ?? ''));
+
+  const reasons = [];
+  if (text.length < 400) reasons.push(`only ${text.length} characters of visible text`);
+  if (roots.length && text.length < 1500) reasons.push(`an empty-looking app root (#${attr(roots[0], 'id')})`);
+  if (scripts.length > 8 && text.length < 1500) reasons.push(`${scripts.length} script tags but little text`);
+  if (scriptBytes > text.length * 4 && text.length < 2000) reasons.push('far more inline script than text');
+
+  return { likely: reasons.length > 0, reasons, textLength: text.length, scriptCount: scripts.length };
+}
+
+/** Kept for callers that pass raw strings around; parse5 handles entities itself. */
+export function decodeEntities(s) {
+  const doc = parse(`<body>${s}</body>`);
+  return textOf(deepFind(doc, n => isElement(n) && n.tagName === 'body') ?? doc);
 }

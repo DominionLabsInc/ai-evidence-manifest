@@ -1,5 +1,5 @@
 import { fetchSafe } from './fetch-safe.js';
-import { extractText, extractTitle, extractMeta, extractJsonLd, extractBlocks } from './html.js';
+import { extractText, extractTitle, extractMeta, extractJsonLd, extractBlocks, looksClientRendered } from './html.js';
 import { sha256OfText, normalizeText, containsNormalized, textFragment } from './normalize.js';
 
 export const EXTRACT_DEFAULTS = {
@@ -169,7 +169,17 @@ export function candidatesFromHtml(html, url, opts = {}) {
     });
     if (evidence.length >= o.maxCandidatesPerPage) break;
   }
-  return { url, title, candidates: evidence };
+
+  // Finding nothing is ambiguous: the page may genuinely have no claims, or it
+  // may assemble its content in the browser where fetching cannot see it.
+  // Saying which is the difference between a useful result and a misleading one.
+  let note = null;
+  if (evidence.length === 0) {
+    const cr = looksClientRendered(html);
+    if (cr.likely) note = { code: 'client-rendered', reasons: cr.reasons, textLength: cr.textLength };
+    else note = { code: 'no-candidates', reasons: [`${cr.textLength} characters of visible text, none matching a claim pattern`], textLength: cr.textLength };
+  }
+  return { url, title, candidates: evidence, note };
 }
 
 // ------------------------------------------------------------------- site ---
@@ -215,9 +225,9 @@ export async function extractFromSite(siteUrl, opts = {}) {
   for (const url of pages) {
     try {
       const r = await extractFromPage(url, o);
-      pageResults.push({ url, candidates: r.candidates.length });
+      pageResults.push({ url, candidates: r.candidates.length, note: r.note });
       all.push(...r.candidates);
-      if (typeof o.onPage === 'function') o.onPage(url, r.candidates.length);
+      if (typeof o.onPage === 'function') o.onPage(url, r.candidates.length, null, r.note);
     } catch (e) {
       errors.push({ url, error: e.message });
       if (typeof o.onPage === 'function') o.onPage(url, 0, e.message);

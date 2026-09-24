@@ -71,7 +71,8 @@ A manifest entry with none of the above verified is a publisher assertion with a
 | Redirect to an internal address | Every hop re-validated |
 | Oversized manifest or evidence page | Size limits enforced while streaming, not from `Content-Length` alone |
 | XSS via `claim` or `text` | Treated as inert text; consumers escape on output |
-| Script injection via referenced page | Extraction discards `script`, `style`, `noscript`, `template` and `svg` before reading text |
+| Script injection via referenced page | HTML is parsed with parse5 and `script`, `style`, `noscript`, `template`, `svg`, `iframe` and `object` subtrees are discarded before any text is read. Nothing is evaluated. |
+| Mis-parsed markup causing false drift reports | A spec-compliant parser is used rather than regular expressions, so attributes containing `>`, unclosed tags and implied elements do not corrupt extracted text |
 | Hand-edited manifest | Offline hash check detects text/hash inconsistency |
 | Page drifts away from manifest | Online check detects that the quote is no longer present |
 | Fabricated quote from a generator | Generators MUST verify verbatim presence before emitting |
@@ -81,7 +82,6 @@ A manifest entry with none of the above verified is a publisher assertion with a
 
 Stated plainly, because a security document that only lists strengths is not useful:
 
-- **Content rendered solely by client-side JavaScript is invisible** to the reference extractor and validator. Evidence on such pages will appear absent. This fails safe — evidence is missed, never fabricated — but it is a real gap.
-- **HTML reading is regex-based, not a full parser.** Pathological markup may be read imperfectly. Again, failure means a missed or unconfirmed quote.
+- **Content rendered solely by client-side JavaScript is invisible** to the reference extractor and validator, because both fetch HTML rather than running a browser. Evidence on such pages appears absent. This fails safe — evidence is missed, never fabricated — but it is a real gap, so `extract` and `generate` detect the condition and say so rather than silently reporting no claims. Point the config at server-rendered URLs, or generate from build output.
 - **No signing in v1.** A manifest served over HTTPS inherits transport authenticity and nothing more. Anyone who can modify the file can rewrite it.
 - **DNS rebinding is not fully mitigated.** Addresses are checked at resolution time; a hostile resolver could return a different answer on a subsequent connection. Consumers needing a stronger guarantee should pin the resolved address for the duration of the request.

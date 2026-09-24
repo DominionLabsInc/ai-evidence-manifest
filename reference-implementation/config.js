@@ -111,13 +111,15 @@ export async function generate(cfg, { onPage } = {}) {
   const pages = await discoverUrls(cfg);
   const found = [];
   const errors = [];
+  const clientRendered = [];
 
   for (const url of pages) {
     try {
       const r = await extractFromPage(url, { maxPerType: cfg.maxPerType, maxCandidatesPerPage: EXTRACT_DEFAULTS.maxCandidatesPerPage });
       const kept = cfg.types.length ? r.candidates.filter(c => cfg.types.includes(c.type)) : r.candidates;
       found.push(...kept);
-      onPage?.(url, kept.length);
+      if (r.note?.code === 'client-rendered') clientRendered.push({ url, reasons: r.note.reasons });
+      onPage?.(url, kept.length, null, r.note);
     } catch (e) {
       errors.push({ url, error: e.message });
       onPage?.(url, 0, e.message);
@@ -137,5 +139,5 @@ export async function generate(cfg, { onPage } = {}) {
     const pinnedIds = new Set(cfg.pin.map(c => c.id));
     manifest.claims = [...cfg.pin, ...manifest.claims.filter(c => !pinnedIds.has(c.id))];
   }
-  return { manifest, pages, errors, pinned: cfg.pin.length, found: capped.length };
+  return { manifest, pages, errors, clientRendered, pinned: cfg.pin.length, found: capped.length };
 }

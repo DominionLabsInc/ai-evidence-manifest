@@ -170,7 +170,10 @@ async function cmdGenerate(args) {
 
   process.stderr.write(`\n  reading ${C.bold(file)} — ${cfg.site}\n`);
   const res = await generate(cfg, {
-    onPage: (u, n, err) => process.stderr.write(`  ${String(n).padStart(3)}  ${err ? C.yellow(err.slice(0, 60)) + ' ' : ''}${C.dim(u)}\n`)
+    onPage: (u, n, err, note) => {
+      const flag = note?.code === 'client-rendered' ? C.yellow(' content appears to be rendered in the browser') : '';
+      process.stderr.write(`  ${String(n).padStart(3)}  ${err ? C.yellow(err.slice(0, 60)) + ' ' : ''}${C.dim(u)}${flag}\n`);
+    }
   });
 
   const check = await validateManifest(res.manifest, { offline: true });
@@ -187,6 +190,11 @@ async function cmdGenerate(args) {
   process.stderr.write(C.dim(`  found claims are marked automatically-generated; review before relying on them\n`));
   process.stderr.write(C.dim(`  serve it at ${new URL('/ai.json', cfg.site)}\n\n`));
   for (const e of res.errors) process.stderr.write(C.yellow(`  skipped ${e.url}: ${e.error}\n`));
+  if (res.clientRendered.length) {
+    process.stderr.write(C.yellow(`\n  ${res.clientRendered.length} page(s) returned no claims and look client-rendered:\n`));
+    for (const p of res.clientRendered.slice(0, 5)) process.stderr.write(C.dim(`    ${p.url} — ${p.reasons[0]}\n`));
+    process.stderr.write(C.dim(`  Fetching cannot see content assembled in the browser. Point the config at\n  server-rendered URLs, or generate from your build output.\n`));
+  }
   return 0;
 }
 
