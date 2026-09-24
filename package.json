@@ -5,7 +5,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "ai-evidence": "./validator/cli.js"
+    "ai-evidence": "validator/cli.js"
   },
   "exports": {
     ".": "./reference-implementation/index.js"
@@ -42,6 +42,6 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/DominionLabsInc/ai-evidence-manifest.git"
+    "url": "git+https://github.com/DominionLabsInc/ai-evidence-manifest.git"
   }
 }
