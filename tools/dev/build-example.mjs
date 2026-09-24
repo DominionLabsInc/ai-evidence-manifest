@@ -13,7 +13,7 @@ const ev = (url, text, extra = {}) => ({
 
 const manifest = {
   manifest: {
-    version: '1.0.0',
+    version: '2.0.0',
     site: 'https://example.com',
     generated_at: '2026-09-24T09:00:00Z',
     generator: 'ai-evidence/0.1.0',
@@ -90,7 +90,7 @@ const manifest = {
 fs.writeFileSync(new URL('../../examples/ai.json', import.meta.url), JSON.stringify(manifest, null, 2) + '\n');
 
 const minimal = {
-  manifest: { version: '1.0.0', site: 'https://example.com' },
+  manifest: { version: '2.0.0', site: 'https://example.com' },
   claims: [{
     id: 'capability-autonomous-ai', type: 'capability',
     claim: 'The company develops autonomous AI systems.',

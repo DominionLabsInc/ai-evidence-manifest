@@ -4,6 +4,52 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The spe
 
 ## [Unreleased]
 
+## [2.0.0] — 2026-09-24
+
+Specification 2.0.0, tooling 0.2.0. **Breaking**, and superseding 1.0.0 the
+same day it was published, after a standards review.
+
+### Why this is a major version
+
+A document valid under 1.0.0 can be invalid under 2.0.0: `verification.verified`
+may no longer be `true` alongside `method: automatically-generated`. Section 11
+says a breaking change takes a major version and that a consumer must not
+process a major version it does not implement. Applying that rule to a
+specification published hours earlier is uncomfortable, and doing anything else
+would make the rule worthless. Validators now reject 1.x manifests, including
+the ones the 0.1.0 tooling produced.
+
+1.0.0 should not be implemented.
+
+### Changed
+
+- **Canonical location is `/.well-known/ai-evidence.json`** (RFC 8615).
+  `/ai.json` remains a valid, non-canonical alias and must be byte-identical.
+  `generate` writes both; consumers probe the well-known path first.
+- **Media type `application/ai-evidence+json`** (RFC 6839), unregistered for
+  now; `application/json` accepted and content type is never grounds for
+  rejection.
+- **Link relations expressed as URIs** (RFC 8288).
+- **Caching specified**: `max-age` no greater than the recheck interval;
+  `checked_at` is not a cache directive.
+- **`verified: true` with `automatically-generated` is a schema error**, not a
+  warning.
+- **Section 9b replaces the informal trust guidance** with two named epistemic
+  states, the operations each licenses, the conditions under which a manifest
+  conveys no state at all, an attribution requirement, and an explicit account
+  of what the freshness record cannot do.
+- **Section 14.4 records what the specification does not define**: publisher
+  authentication, rollback detection, conflict resolution, partial validity,
+  completeness.
+- Licence is Apache-2.0 throughout; the earlier Apache/Elastic split is gone.
+
+### Fixed
+
+- A `ReferenceError` in `generate` that threw after writing correct output.
+- The Python wheel's bundled schema copy had gone stale; a test now fails on
+  drift.
+
+
 ## [1.0.0] — 2026-09-24
 
 Published as `ai-evidence` 0.1.0 on [npm](https://www.npmjs.com/package/ai-evidence)

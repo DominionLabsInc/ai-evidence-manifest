@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dominionlabsinc.github.io/ai-evidence-manifest/schema/1.0.0/ai-evidence-manifest.schema.json",
+  "$id": "https://dominionlabsinc.github.io/ai-evidence-manifest/schema/2.0.0/ai-evidence-manifest.schema.json",
   "title": "AI Evidence Manifest",
   "description": "A publisher-declared index linking important claims on a website to the first-party evidence supporting them. The manifest asserts where evidence is located; it does not assert that any claim is true.",
   "type": "object",

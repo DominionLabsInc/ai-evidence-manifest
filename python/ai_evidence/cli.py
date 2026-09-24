@@ -6,8 +6,8 @@ import json
 import sys
 from pathlib import Path
 
-from .config import (CONFIG_FILENAME, ConfigError, generate, init_config,
-                     load_config, write_config)
+from .config import (ALIAS_PATH, CONFIG_FILENAME, WELL_KNOWN_PATH, ConfigError,
+                     generate, init_config, load_config, write_config)
 from .extract import extract_from_page, extract_from_site, to_manifest
 from .fetch_safe import FetchRefused, fetch_safe
 from .repair import SIMILARITY_THRESHOLD, repair_manifest
@@ -28,9 +28,28 @@ def _is_url(s: str) -> bool:
     return s.startswith(("http://", "https://"))
 
 
+def _manifest_urls(target: str) -> list[str]:
+    """A bare origin resolves to the canonical path first, then the alias."""
+    from urllib.parse import urlsplit, urlunsplit
+    p = urlsplit(target)
+    if p.path not in ("", "/"):
+        return [target]
+    return [urlunsplit(p._replace(path="/" + WELL_KNOWN_PATH)),
+            urlunsplit(p._replace(path="/" + ALIAS_PATH))]
+
+
 def _read_manifest(target: str):
     if _is_url(target):
-        res = fetch_safe(target, accept="application/json")
+        res, last = None, None
+        for candidate in _manifest_urls(target):
+            try:
+                res = fetch_safe(candidate,
+                                 accept="application/ai-evidence+json, application/json")
+                break
+            except Exception as e:
+                last = e
+        if res is None:
+            raise last
         if "json" not in (res["contentType"] or "").lower():
             sys.stderr.write(YELLOW(
                 f'warning: {target} served as "{res["contentType"] or "no content-type"}"; '
@@ -93,7 +112,6 @@ def cmd_init(args) -> int:
 
 def cmd_generate(args) -> int:
     file = args.config or CONFIG_FILENAME
-    out = args.out or "ai.json"
     try:
         cfg = load_config(file)
     except ConfigError as e:
@@ -124,16 +142,23 @@ def cmd_generate(args) -> int:
                        recheck_interval_days=cfg.get("recheckIntervalDays", 7))
 
     text = json.dumps(res["manifest"], indent=2) + "\n"
-    Path(out).write_text(text, encoding="utf-8")
+    # RFC 8615 canonical path, plus the short alias unless suppressed.
+    targets = ([args.out] if args.out
+               else [WELL_KNOWN_PATH] if args.no_alias
+               else [WELL_KNOWN_PATH, ALIAS_PATH])
+    for t in targets:
+        Path(t).parent.mkdir(parents=True, exist_ok=True)
+        Path(t).write_text(text, encoding="utf-8")
     v = res["manifest"]["manifest"]["verification"]
-    sys.stderr.write(f"\n  wrote {BOLD(out)} — {len(res['manifest']['claims'])} claims, "
+    sys.stderr.write(f"\n  wrote {BOLD(' and '.join(targets))} — "
+                     f"{len(res['manifest']['claims'])} claims, "
                      f"{len(text.encode()) / 1024:.1f} KiB\n")
     if res["pinned"]:
         sys.stderr.write(DIM(f"  {res['pinned']} pinned claim(s) kept from the config\n"))
     sys.stderr.write(DIM(f"  {v['evidence_present']}/{v['evidence_total']} quotes read from the "
                          f"live pages and confirmed present\n"))
     sys.stderr.write(DIM("  what a human adds: which claims matter, and whether the types are right\n"))
-    sys.stderr.write(DIM(f"  serve it at {cfg['site'].rstrip('/')}/ai.json\n\n"))
+    sys.stderr.write(DIM(f"  serve it at {cfg['site'].rstrip('/')}/{WELL_KNOWN_PATH}\n\n"))
     for e in res["errors"]:
         sys.stderr.write(YELLOW(f"  skipped {e['url']}: {e['error']}\n"))
     if res["clientRendered"]:
@@ -283,9 +308,11 @@ def main(argv=None) -> int:
     p.add_argument("--force", action="store_true")
     p.set_defaults(fn=cmd_init)
 
-    p = sub.add_parser("generate", help="read the config, find evidence, write ai.json")
+    p = sub.add_parser("generate", help="read the config, find evidence, write the manifest")
     p.add_argument("--config")
-    p.add_argument("--out")
+    p.add_argument("--out", help="write to this path instead of the default locations")
+    p.add_argument("--no-alias", action="store_true",
+                   help="write only the canonical .well-known path")
     p.set_defaults(fn=cmd_generate)
 
     for name, help_text in (("validate", "validate a manifest"),

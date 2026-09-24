@@ -4,7 +4,7 @@
 class AiEvidence < Formula
   desc "Publish and verify an /ai.json evidence manifest for a website"
   homepage "https://github.com/DominionLabsInc/ai-evidence-manifest"
-  url "https://github.com/DominionLabsInc/ai-evidence-manifest/archive/refs/tags/v0.1.0.tar.gz"
+  url "https://github.com/DominionLabsInc/ai-evidence-manifest/archive/refs/tags/v0.2.0.tar.gz"
   sha256 "REPLACE_ON_RELEASE"
   license "Apache-2.0"
   head "https://github.com/DominionLabsInc/ai-evidence-manifest.git", branch: "main"

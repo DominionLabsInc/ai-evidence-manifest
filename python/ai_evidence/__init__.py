@@ -11,7 +11,7 @@ from .repair import repair_manifest, similarity
 from .validate import (LIMITS, SUPPORTED_MAJOR, parse_manifest, stamp_verification,
                        validate_manifest)
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
     "normalize_text", "sha256_of_text", "contains_normalized", "text_fragment",
     "fetch_safe", "assert_fetchable", "normalize_input_url", "FetchRefused",

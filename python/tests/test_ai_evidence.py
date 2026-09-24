@@ -185,3 +185,36 @@ class TestRepair:
         blocks = [{"id": "s", "section": None, "tag": "p",
                    "text": "Our privacy policy explains cookie retention."}]
         assert best_match(blocks, "We build autonomous warehouse systems.") is None
+
+
+class TestCli:
+    """The CLI had no coverage and shipped a ReferenceError once. Smoke tests:
+    they assert the commands run and return the right exit code."""
+
+    def test_help_exits_cleanly(self):
+        from ai_evidence.cli import main
+        with pytest.raises(SystemExit) as e:
+            main(["--help"])
+        assert e.value.code == 0
+
+    def test_validate_accepts_a_valid_manifest(self):
+        from ai_evidence.cli import main
+        assert main(["validate", str(FIXTURES / "valid.json"), "--offline"]) == 0
+
+    def test_validate_rejects_an_invalid_one(self):
+        from ai_evidence.cli import main
+        assert main(["validate", str(FIXTURES / "duplicate-ids.json"), "--offline"]) == 1
+
+    def test_canonical_paths_match_the_spec(self):
+        from ai_evidence.config import ALIAS_PATH, WELL_KNOWN_PATH
+        assert WELL_KNOWN_PATH == ".well-known/ai-evidence.json"   # RFC 8615
+        assert ALIAS_PATH == "ai.json"
+
+    def test_rejects_an_unsupported_major_version(self):
+        import json as _json
+        from ai_evidence.validate import validate_manifest
+        m = _json.loads((EXAMPLES / "minimal.json").read_text())
+        m["manifest"]["version"] = "1.0.0"
+        r = validate_manifest(m, offline=True)
+        assert not r["valid"]
+        assert "version" in {f["code"] for f in r["findings"]}

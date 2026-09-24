@@ -9,7 +9,7 @@ import { extractText } from './html.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const SCHEMA_PATH = path.join(here, '..', 'schema', 'ai-evidence-manifest.schema.json');
-export const SUPPORTED_MAJOR = 1;
+export const SUPPORTED_MAJOR = 2;
 
 export const LIMITS = {
   maxManifestBytes: 1024 * 1024,   // 1 MiB

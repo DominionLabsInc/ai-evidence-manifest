@@ -22,7 +22,7 @@ _SCHEMA_CANDIDATES = [
     _HERE.parent.parent / "schema" / "ai-evidence-manifest.schema.json",
 ]
 
-SUPPORTED_MAJOR = 1
+SUPPORTED_MAJOR = 2
 
 LIMITS = {
     "maxManifestBytes": 1024 * 1024,

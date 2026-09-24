@@ -1,6 +1,6 @@
 # AI Evidence Manifest — Specification
 
-**Version 1.0.0** · Status: proposed open web convention · [Apache-2.0](LICENSE)
+**Version 2.0.0** · Status: proposed open web convention · [Apache-2.0](LICENSE)
 
 The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT and MAY are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174).
 
@@ -133,7 +133,7 @@ Unknown members MUST be rejected at the top level and within defined objects; th
 
 | Field | Type | | Notes |
 |---|---|---|---|
-| `version` | string | REQUIRED | Specification version, semantic versioning, e.g. `1.0.0` |
+| `version` | string | REQUIRED | Specification version, semantic versioning, e.g. `2.0.0` |
 | `site` | https URL | REQUIRED | Origin the manifest describes |
 | `generated_at` | date-time | OPTIONAL | RFC 3339 |
 | `generator` | string | OPTIONAL | Tool that produced the file |
@@ -432,6 +432,18 @@ Semantic versioning. `manifest.version` is REQUIRED.
 - **Patch** — clarifications with no wire-format change.
 
 Consumers MUST ignore unknown members under `extensions` rather than failing.
+
+### 11.1 Version history
+
+**2.0.0** supersedes 1.0.0 and is a breaking change, because a document that
+was valid under 1.0.0 may be invalid under 2.0.0: `verification.verified` may
+no longer be `true` alongside `method: automatically-generated` (§8). The
+canonical location also moved to `/.well-known/ai-evidence.json` (§2.1),
+though the 1.0.0 location remains a valid alias.
+
+1.0.0 was published and superseded the same day, after a standards review. It
+should not be implemented. A 2.x consumer MUST NOT process a 1.x manifest, per
+the rule above — including this one.
 
 ## 12. Integrity and signing (future)
 

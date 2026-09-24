@@ -24,7 +24,7 @@ It is a plain static file. Nothing runs, nothing is added to your pages, no acco
 
 ```jsonc
 {
-  "manifest": { "version": "1.0.0", "site": "https://example.com" },
+  "manifest": { "version": "2.0.0", "site": "https://example.com" },
   "claims": [
     {
       "id": "capability-autonomous-ai",

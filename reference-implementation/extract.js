@@ -433,10 +433,10 @@ export function toManifest(site, candidates) {
 
   return {
     manifest: {
-      version: '1.0.0',
+      version: '2.0.0',
       site,
       generated_at: new Date().toISOString(),
-      generator: 'ai-evidence/0.1.0'
+      generator: 'ai-evidence/0.2.0'
     },
     claims
   };
