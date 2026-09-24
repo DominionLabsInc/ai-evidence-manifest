@@ -273,6 +273,42 @@ function toEvidence(c, { url, title, meta }) {
 
 const ATOMIC_TYPES = new Set(['policy', 'certification', 'credential', 'pricing', 'statistic', 'availability', 'contact']);
 
+/**
+ * Sentences that are grammatically fine and completely useless as claims.
+ *
+ * Three families, all detectable without judgement:
+ *   - the sentence is about the document rather than the organisation
+ *     ("This Privacy Policy explains…", "Table 2 maps…")
+ *   - consent formulas addressed to the reader ("By using the Services, you
+ *     agree…"), which appear on millions of sites and say nothing specific
+ *   - capitalised liability blocks, which are disclaimers, not claims
+ */
+const SELF_REFERENTIAL = /^(?:this|these|the)\s+(?:privacy policy|terms|terms of service|agreement|document|section|table|figure|paper|study|article|page)\b|^(?:table|figure|section|appendix)\s+\d|^the (?:document|section|chapter) that follows/i;
+const CONSENT_FORMULA = /^(?:by (?:using|accessing|continuing|clicking)|if you (?:do not )?(?:agree|accept)|you (?:agree|acknowledge|represent|warrant)\b)|\bcontinued use of the services\b|\bconstitutes acceptance\b/i;
+
+// A sentence that defers its content to somewhere else carries none of its own.
+const DANGLING_REFERENCE = /\b(?:described|listed|set out|set forth|specified|outlined)\s+(?:below|above|herein|in this (?:policy|section|agreement))\b|\bas follows\b|\bsee (?:section|table|figure)\b/i;
+const GOVERNED_BY = /\b(?:is|are) also governed by\b|\bentire agreement\b|\bwe may update this\b|\bdoes not apply to those third parties\b/i;
+
+// Cloudflare and similar services replace addresses with a placeholder in the
+// HTML and restore them with JavaScript. The quote is verbatim but the value is
+// missing, which makes it worthless as evidence.
+const OBFUSCATED = /\[email\s*protected\]|\[at\]|\(at\)|&#\d+;@/i;
+
+function isBoilerplate(text) {
+  if (OBFUSCATED.test(text)) return true;
+  if (SELF_REFERENTIAL.test(text) || CONSENT_FORMULA.test(text) || GOVERNED_BY.test(text)) return true;
+  if (DANGLING_REFERENCE.test(text)) return true;
+  const letters = text.replace(/[^\p{Letter}]/gu, '');
+  if (letters.length > 30 && (letters.replace(/[^\p{Uppercase_Letter}]/gu, '').length / letters.length) > 0.6) return true;
+  return false;
+}
+
+// A certification or credential claim needs a named standard or instrument.
+// Without this, any sentence containing "audited" or "licensed" as an ordinary
+// verb is published as though the company held a certification.
+const NAMED_CREDENTIAL = /\b(ISO\s?\d{4,5}|SOC\s?2|HIPAA|GDPR|CCPA|FedRAMP|CMMC|PCI[- ]DSS|Type\s?II|patent(?:\s+no\.?|\s+number|ed\b)|trademark|registered in|licen[cs]ed,? not sold|certificate|accreditation)\b/i;
+
 function clusterUnderSummaries(verified, summaries, ctx) {
   const used = new Set();
   const claims = [];
@@ -308,6 +344,9 @@ function clusterUnderSummaries(verified, summaries, ctx) {
   for (const [i, c] of verified.entries()) {
     if (used.has(i)) continue;
     if (summariesOnly && !ATOMIC_TYPES.has(c.type)) continue;
+    if (summariesOnly && isBoilerplate(c.text)) continue;
+    if (summariesOnly && (c.type === 'certification' || c.type === 'credential') && !NAMED_CREDENTIAL.test(c.text)) continue;
+    if (summariesOnly && c.type === 'pricing' && !/(\$|\u20ac|\u00a3)\s?\d|\bper\s+(month|year|seat|user)\b|\bfree tier\b/i.test(c.text)) continue;
     if (claims.length >= ctx.o.maxCandidatesPerPage) break;
     claims.push({
       type: c.type,

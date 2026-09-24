@@ -123,3 +123,43 @@ describe('sentence boundaries', () => {
     assert.ok(t.some(x => x === 'We do not sell personal information for money.'), JSON.stringify(t));
   });
 });
+
+describe('quality gates', () => {
+  const claims = html => candidatesFromHtml(html, URL_, {}).candidates;   // default: summaries mode
+  const withText = t => page(`<section id="s"><p>${t}</p></section>`);
+
+  const rejected = [
+    ['self-referential', 'This Privacy Policy explains how Acme Corp collects and uses your personal information.'],
+    ['a consent formula', 'By using the Services, you acknowledge that you have read and understood this Privacy Policy.'],
+    ['continued-use consent', 'Your continued use of the Services after changes become effective constitutes acceptance of them.'],
+    ['an entire-agreement clause', 'These Terms and the Privacy Policy are the entire agreement between you and Acme regarding the Services.'],
+    ['a dangling reference', 'Access and deletion: contact us to exercise the rights described below.'],
+    ['an obfuscated address', 'If you have questions about this notice, contact us at [email protected] for assistance.'],
+    ['an all-caps disclaimer', 'OUR TOTAL LIABILITY FOR ALL CLAIMS RELATING TO THE SERVICES WILL NOT EXCEED THE AMOUNT PAID.']
+  ];
+  for (const [label, text] of rejected) {
+    test(`rejects ${label}`, () => {
+      assert.ok(!claims(withText(text)).some(c => c.claim === text), text);
+    });
+  }
+
+  test('rejects a certification type without a named credential', () => {
+    const t = 'A system whose competence can be localised this precisely can also be audited and corrected.';
+    assert.ok(!claims(withText(t)).some(c => c.claim === t));
+  });
+
+  test('keeps a certification that names a standard', () => {
+    const t = 'Acme completed a SOC 2 Type II audit covering security and availability this year.';
+    assert.ok(claims(withText(t)).some(c => c.claim === t), JSON.stringify(claims(withText(t)).map(c => c.claim)));
+  });
+
+  const kept = [
+    ['an explicit commitment', 'We do not sell personal information for money to anyone at any time.'],
+    ['a measured statistic', 'Median times over the run were 28 ms to perceive an image and 458 ms to induce a rule.']
+  ];
+  for (const [label, text] of kept) {
+    test(`keeps ${label}`, () => {
+      assert.ok(claims(withText(text)).some(c => c.claim === text), text);
+    });
+  }
+});
