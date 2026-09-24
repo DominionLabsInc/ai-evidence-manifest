@@ -32,11 +32,18 @@ def contains_normalized(haystack: str, needle: str) -> bool:
     return normalize_text(needle).lower() in normalize_text(haystack).lower()
 
 
+# Percent-encoding must match across implementations or the same quote yields
+# two different fragments. JavaScript's encodeURIComponent leaves these
+# characters unescaped; Python's quote does not, so they are declared safe.
+# See SPEC.md 5.1.
+_FRAGMENT_SAFE = "!*\'()"
+
+
 def text_fragment(text: str, max_words: int = 12) -> str:
     """A W3C Text Fragment, so an agent or browser lands on the quote."""
     words = normalize_text(text).split(" ")
     if len(words) <= max_words * 2:
-        return "#:~:text=" + quote(" ".join(words), safe="")
-    start = quote(" ".join(words[:max_words]), safe="")
-    end = quote(" ".join(words[-max_words:]), safe="")
+        return "#:~:text=" + quote(" ".join(words), safe=_FRAGMENT_SAFE)
+    start = quote(" ".join(words[:max_words]), safe=_FRAGMENT_SAFE)
+    end = quote(" ".join(words[-max_words:]), safe=_FRAGMENT_SAFE)
     return f"#:~:text={start},{end}"

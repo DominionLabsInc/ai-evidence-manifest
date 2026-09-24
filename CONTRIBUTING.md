@@ -13,7 +13,13 @@ Thanks for looking. This is a proposed convention, so the most valuable contribu
 
 ```bash
 npm install
-npm test                       # no network required
+npm test                       # includes cross-implementation conformance
+
+# Python implementation
+cd python && python3 -m venv .venv && ./.venv/bin/pip install -e ".[dev]"
+./.venv/bin/python -m pytest tests/ -q
+cd ..
+
 npm run validate:examples
 
 # the publisher flow, end to end
@@ -46,6 +52,21 @@ Never hand-edit a `sha256` — regenerate.
 Any change to §5 text normalization is breaking, because it invalidates every existing hash. Treat it as such.
 
 Include tests with behavioural changes. If you fix a bug, add the fixture that would have caught it.
+
+## Two implementations
+
+JavaScript and Python must behave identically. Three things hold that together:
+
+- `shared/patterns.json` — every pattern, threshold, gate and element set. Change
+  behaviour there, not in either implementation.
+- `schema/` — one normative schema, validated against by both.
+- `tests/conformance/` — a corpus of real pages. `npm test` runs both
+  implementations over it and fails if a single byte differs.
+
+The conformance suite has already caught real bugs in both directions: a
+truncated sentence in the JavaScript, a non-deterministic tie-break in the
+Python, and a percent-encoding difference neither would have noticed alone.
+If you change extraction, run it.
 
 ## Style
 

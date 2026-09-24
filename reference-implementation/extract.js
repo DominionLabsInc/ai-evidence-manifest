@@ -63,7 +63,7 @@ function tier1(pageText, jsonld) {
 const PATTERNS = CLAIM_PATTERNS;
 
 
-function splitSentences(text) {
+export function splitSentences(text) {
   const parts = text.split(SENTENCE.splitAfter);
   const out = [];
   for (const part of parts) {
@@ -191,7 +191,9 @@ function sectionLeads(blocks) {
     if (!/^h[1-4]$/.test(blocks[i].tag)) continue;
     const body = blocks.slice(i + 1).find(b => b.tag === 'p' && b.text.length >= 60);
     if (!body) continue;
-    const first = body.text.split(/(?<=[.!?])\s+(?=[A-Z0-9"\u201c'(])/u)[0]?.trim();
+    // Must go through splitSentences: splitting inline here bypasses the
+    // abbreviation handling and truncates "Dominion Labs Inc." mid-sentence.
+    const first = splitSentences(body.text)[0]?.trim();
     if (first && first.length >= 50 && first.length <= 320) leads.push(first);
   }
   return leads;
@@ -326,7 +328,10 @@ function dropSubsumed(claims) {
     });
     if (!covered) out.push(c);
   }
-  return out;
+  // Compare in best-supported-first order, but emit in document order: a
+  // manifest should read in the order the page does, and the two
+  // implementations must agree on it.
+  return claims.filter(c => out.includes(c));
 }
 
 // ------------------------------------------------------------------- site ---

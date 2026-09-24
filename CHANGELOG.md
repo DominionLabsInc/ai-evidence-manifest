@@ -27,6 +27,28 @@ First public specification and reference implementation.
 - HTML read with parse5, and pages that assemble their content in the browser are detected and reported instead of silently yielding nothing.
 - 51 tests covering schema, semantics, Unicode, XSS payloads, SSRF and HTML extraction.
 
+### Second implementation
+
+A Python package with the same commands and the same behaviour, so the tooling
+installs with pip as well as npm, plus Homebrew and Docker. Both load
+`shared/patterns.json` and validate against the same schema, and a conformance
+corpus requires byte-identical output from identical input.
+
+Writing the second implementation found four real bugs that one alone would
+not have:
+
+- **JavaScript**: `sectionLeads` split sentences with an inline regex instead
+  of `splitSentences`, bypassing abbreviation handling. "This Privacy Policy
+  explains how Dominion Labs Inc." was published truncated at "Inc.". The same
+  inline split existed in `repair.js`.
+- **JavaScript**: claims were emitted sorted by evidence count rather than in
+  document order.
+- **Python**: `max(set(types), key=...)` broke ties by set iteration order,
+  which is arbitrary — two runs could disagree.
+- **Both**: percent-encoding of text fragments differed. JavaScript's
+  `encodeURIComponent` leaves `!~*'()` unescaped, Python's `quote` does not, so
+  the same quote produced two different fragments. The spec now pins it (5.1).
+
 ### Licensing
 
 Split deliberately. `SPEC.md`, `schema/`, `shared/` and `examples/` are

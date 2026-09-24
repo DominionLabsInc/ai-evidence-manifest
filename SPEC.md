@@ -133,6 +133,17 @@ This supports two distinct checks:
 
 Both are implemented by the reference validator. `integrity` is OPTIONAL in v1, but omitting it means consumers cannot detect drift without a full refetch and comparison, and the validator warns.
 
+### 5.1 Fragment encoding
+
+A `locator.fragment` built from evidence text MUST percent-encode using the
+rules of `encodeURIComponent`: every character is escaped except
+`A-Z a-z 0-9 - _ . ! ~ * ' ( )`.
+
+This is stated because implementations disagree by default — JavaScript's
+`encodeURIComponent` leaves `!~*'()` unescaped while Python's `urllib.parse.quote`
+escapes them, so the same quote would otherwise produce two different fragments
+and two different manifests.
+
 ## 6. Locating evidence within a source
 
 `locator` narrows where in the page the evidence sits.

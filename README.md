@@ -95,30 +95,45 @@ The same property makes automatic generation safe: the extractor only ever emits
 
 For what a consumer should and should not infer from an entry, see [SPEC.md §1](SPEC.md) and [SECURITY.md](SECURITY.md).
 
+## Install
+
+| | |
+|---|---|
+| **npx** — nothing to install | `npx ai-evidence generate` |
+| **npm** | `npm install -g ai-evidence` |
+| **pip** | `pip install ai-evidence` |
+| **Homebrew** | `brew tap dominionlabsinc/tap && brew install ai-evidence` |
+| **Docker** | `docker run --rm -v "$PWD:/work" ghcr.io/dominionlabsinc/ai-evidence generate` |
+| **From source** | `git clone … && npm install && npm link` |
+
+> Not yet published to npm, PyPI, Homebrew or GHCR. Until then, clone and
+> `npm link`, or `pip install -e python/`.
+
+The Python and JavaScript implementations are equivalent — same commands, same
+output. A conformance suite runs both over the same corpus and requires
+byte-identical results, so either is a faithful implementation of the spec.
+Pick whichever fits your build.
+
 ## Quick start
 
-Requires Node 20 or newer.
-
 ```bash
-git clone https://github.com/DominionLabsInc/ai-evidence-manifest.git
-cd ai-evidence-manifest
-npm install
-npm link                       # puts `ai-evidence` on your PATH
+ai-evidence init https://example.com   # write ai-evidence.config.json
+ai-evidence generate                   # read the site, write ai.json
+ai-evidence check ai.json --update     # re-verify, record freshness
 ```
 
-Then, from your site's repository:
+Commit `ai.json`, serve it at your site root, and re-run `generate` when your
+content changes. `ai-evidence repair ai.json` relocates quotes that have
+drifted; anything it cannot confidently relocate it reports rather than
+patches.
 
-```bash
-ai-evidence init https://example.com   # create the config
-ai-evidence generate                   # find evidence, write ai.json
-ai-evidence check ai.json              # confirm every quote is still live
-```
+Everything found automatically is marked `automatically-generated`. Every quote
+is read out of the live page and confirmed present, so the evidence is verified
+before it reaches the file. What a person adds is judgement: which claims
+matter, and whether the types are right.
 
-> Not on npm yet, so `npm install -g ai-evidence` will not work. Use the clone above.
-
-Every quote is read out of the live page and confirmed present, so the evidence is verified before it reaches the file. What a person adds is judgement: which claims matter, and whether the types are right. Delete the noise and the manifest gets smaller and more useful — importance is not a property a machine can derive.
-
-Claims you write by hand go in `pin` in the config. They are emitted first and never overwritten by regeneration.
+Claims you write by hand go in `pin` in the config. They are emitted first and
+never overwritten by regeneration.
 
 ## Publishing
 
@@ -189,7 +204,9 @@ reporting checks it never ran is caught by one request.
 | [`SPEC.md`](SPEC.md) | The normative specification |
 | [`schema/`](schema/) | JSON Schema (draft 2020-12) |
 | [`examples/`](examples/) | A complete worked example and a minimal one |
-| [`reference-implementation/`](reference-implementation/) | Library: normalize, fetch, extract, validate |
+| [`reference-implementation/`](reference-implementation/) | JavaScript library: normalize, fetch, extract, validate, repair |
+| [`python/`](python/) | Python implementation, same behaviour |
+| [`shared/`](shared/) | Patterns and thresholds both implementations load |
 | [`validator/`](validator/) | `ai-evidence` command-line tool |
 | [`tests/`](tests/) | Test suite and fixtures |
 | [`deploy/`](deploy/) | Deployment recipes |

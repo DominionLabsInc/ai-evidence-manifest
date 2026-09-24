@@ -43,7 +43,7 @@ function candidateTexts(blocks) {
   const out = [];
   for (const b of blocks) {
     out.push({ block: b, text: b.text });
-    const sentences = b.text.split(/(?<=[.!?])\s+(?=[A-Z0-9"\u201c'(])/u).map(x => x.trim()).filter(Boolean);
+    const sentences = splitSentences(b.text);
     if (sentences.length > 1) for (const t of sentences) out.push({ block: b, text: t });
   }
   return out;

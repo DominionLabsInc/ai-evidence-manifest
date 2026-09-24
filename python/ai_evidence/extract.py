@@ -229,7 +229,12 @@ def _cluster(verified: list[dict], summaries: list[dict], ctx: dict) -> list[dic
         for i, _, _ in supporting:
             used.add(i)
         types = [c["type"] for _, c, _ in supporting]
-        ctype = summary["type"] or max(set(types), key=types.count)
+        # Most common type, ties broken by first appearance. max(set(...))
+        # would iterate a set, whose order is arbitrary, so two runs could
+        # disagree — and so could the two implementations.
+        counts = {t: types.count(t) for t in types}
+        best = max(counts.values())
+        ctype = summary["type"] or next(t for t in types if counts[t] == best)
         claims.append({
             "type": ctype, "claim": summary["text"], "summary_source": summary["source"],
             "tier": 1, "why": f"summary from {summary['source']}, {len(supporting)} supporting quote(s)",
@@ -353,3 +358,81 @@ def to_manifest(site: str, candidates: list[dict]) -> dict:
         },
         "claims": claims,
     }
+
+
+# ---------------------------------------------------------------------- site
+
+def _discover_urls(site_url: str, o: dict) -> list[str]:
+    parts = urlsplit(site_url)
+    origin = f"{parts.scheme}://{parts.netloc}"
+    urls, seen = [site_url], {site_url}
+    asset = re.compile(r"\.(pdf|png|jpe?g|gif|svg|webp|zip|xml|json|css|js)$", re.I)
+    try:
+        sm = fetch_safe(urljoin(origin, "/sitemap.xml"), accept="application/xml,text/xml")
+        for m in re.finditer(r"<loc>\s*([^<\s]+)\s*</loc>", sm["body"], re.I):
+            u = m.group(1).strip()
+            if u.startswith(origin) and not asset.search(u) and u not in seen:
+                seen.add(u)
+                urls.append(u)
+            if len(urls) >= o["maxPages"]:
+                break
+    except Exception:
+        pass   # no sitemap is normal; fall back to links on the entry page
+
+    if len(urls) < o["maxPages"]:
+        try:
+            home = fetch_safe(site_url, accept="text/html")
+            for m in re.finditer(r'<a\b[^>]*href\s*=\s*["\']([^"\'#]+)["\']', home["body"], re.I):
+                u = urljoin(site_url, m.group(1)).split("#")[0]
+                q = urlsplit(u)
+                if f"{q.scheme}://{q.netloc}" != origin or asset.search(q.path):
+                    continue
+                if u not in seen:
+                    seen.add(u)
+                    urls.append(u)
+                if len(urls) >= o["maxPages"]:
+                    break
+        except Exception:
+            pass
+    return urls[: o["maxPages"]]
+
+
+def _cap_per_type(candidates: list[dict], max_per_type: int) -> list[dict]:
+    """Keep the first N of each type, so a boilerplate-heavy page cannot crowd
+    out capabilities."""
+    if not max_per_type:
+        return candidates
+    seen: dict[str, int] = {}
+    out = []
+    for c in candidates:
+        n = seen.get(c["type"], 0) + 1
+        seen[c["type"]] = n
+        if n <= max_per_type:
+            out.append(c)
+    return out
+
+
+def extract_from_site(site_url: str, opts: dict | None = None) -> dict:
+    o = {**EXTRACT_DEFAULTS, **(opts or {})}
+    parts = urlsplit(site_url)
+    origin = f"{parts.scheme}://{parts.netloc}"
+    pages = _discover_urls(site_url, o)
+    all_candidates, page_results, errors = [], [], []
+
+    for url in pages:
+        try:
+            r = extract_from_page(url, o)
+            page_results.append({"url": url, "candidates": len(r["candidates"]),
+                                 "note": r.get("note")})
+            all_candidates.extend(r["candidates"])
+            if callable(o.get("onPage")):
+                o["onPage"](url, len(r["candidates"]), None, r.get("note"))
+        except Exception as e:
+            errors.append({"url": url, "error": str(e)})
+            if callable(o.get("onPage")):
+                o["onPage"](url, 0, str(e), None)
+
+    capped = _cap_per_type(all_candidates, o["maxPerType"])
+    return {"manifest": to_manifest(origin, capped), "pages": page_results,
+            "errors": errors, "candidateCount": len(capped),
+            "droppedByCap": len(all_candidates) - len(capped)}
