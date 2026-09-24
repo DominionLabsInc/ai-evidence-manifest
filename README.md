@@ -72,18 +72,9 @@ Autonomous agents frequently need to locate and evaluate evidence before using i
 
 On a real 13-page site, a reviewed manifest is roughly **15 KB against 499 KB to crawl everything** — and it points at the claims that matter rather than the cookie policy.
 
-## What this is not
+## Why it is verifiable
 
-This matters more than what it is, so it comes first.
-
-- **It is not proof.** A manifest records that a publisher says evidence exists at a location. It says nothing about whether the claim is true.
-- **It is not an authority or authentication mechanism.** It establishes no identity and grants no permission.
-- **It is not an SEO or ranking device.** It does not make search engines or AI systems trust, cite, rank or include anything.
-- **It is not consumed universally.** This is a proposed convention. No search engine or AI system is obliged to read it, and today most do not.
-
-The correct reading of an entry is *"the publisher states the supporting evidence is here"* — never *"this is true because it is in ai.json"*.
-
-## Why it can be trusted mechanically
+An entry states **where the publisher says the supporting evidence is**. That is a narrower claim than "this is true", and the narrowness is the point: it is a claim a machine can actually check.
 
 Every evidence record carries the **exact quoted text** and a **SHA-256 of that text** under a fixed normalization. A consumer can therefore:
 
@@ -100,7 +91,9 @@ $ ai-evidence check https://example.com/ai.json
   VALID  0 error(s), 0 warning(s)
 ```
 
-The same property makes automatic generation safe: the extractor only ever emits a quote that it found verbatim in the page's visible text, so it can miss evidence but cannot invent it.
+The same property makes automatic generation safe: the extractor only ever emits a quote it found verbatim in the page's visible text, so it can miss evidence but cannot invent it.
+
+For what a consumer should and should not infer from an entry, see [SPEC.md §1](SPEC.md) and [SECURITY.md](SECURITY.md).
 
 ## Quick start
 
@@ -177,7 +170,7 @@ The manifest reduces evidence-discovery work. It does not remove the need for ve
 
 ## Status
 
-Version 1.0.0 of the specification. A **proposed open web convention** — not a W3C standard, and not endorsed by any standards body.
+Version 1.0.0 of the specification. A **proposed open web convention**, published openly so it can be implemented, criticised and improved by anyone. It is not a W3C standard.
 
 Feedback on the data model, the security model and the discovery mechanism is the most useful thing you can contribute. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
