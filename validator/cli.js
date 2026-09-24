@@ -238,7 +238,7 @@ async function cmdGenerate(args) {
   const v = res.manifest.manifest.verification;
   process.stderr.write(C.dim(`  ${v.evidence_present}/${v.evidence_total} quotes read from the live pages and confirmed present\n`));
   process.stderr.write(C.dim(`  what a human adds: which claims matter, and whether the types are right\n`));
-  process.stderr.write(DIM(`  serve it at ${new URL('/' + WELL_KNOWN_PATH, cfg.site)}\n\n`));
+  process.stderr.write(C.dim(`  serve it at ${new URL('/' + WELL_KNOWN_PATH, cfg.site)}\n\n`));
   for (const e of res.errors) process.stderr.write(C.yellow(`  skipped ${e.url}: ${e.error}\n`));
   if (res.clientRendered.length) {
     process.stderr.write(C.yellow(`\n  ${res.clientRendered.length} page(s) returned no claims and look client-rendered:\n`));

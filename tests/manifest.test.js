@@ -213,3 +213,24 @@ describe('published examples stay valid', () => {
     });
   }
 });
+
+describe('cli smoke', () => {
+  // The CLI is not covered by unit tests and a stray identifier shipped once:
+  // generate threw ReferenceError after writing its output, so the failure was
+  // invisible in the file it produced.
+  test('every command runs without throwing', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const cli = path.join(FIX, '..', '..', 'validator', 'cli.js');
+    for (const argv of [['help'], ['validate', path.join(FIX, 'valid.json'), '--offline'],
+                        ['validate', path.join(FIX, 'valid.json'), '--offline', '--json']]) {
+      const out = execFileSync('node', [cli, ...argv], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      assert.ok(out.length > 0, `no output from: ${argv.join(' ')}`);
+    }
+  });
+
+  test('the source contains no undefined colour helpers', () => {
+    const src = fs.readFileSync(path.join(FIX, '..', '..', 'validator', 'cli.js'), 'utf8');
+    const stray = src.match(/(?<![.\w])(DIM|RED|GREEN|YELLOW|BOLD)\(/g);
+    assert.equal(stray, null, `bare colour helpers (this file uses C.dim etc.): ${stray}`);
+  });
+});
