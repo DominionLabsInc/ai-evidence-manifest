@@ -27,6 +27,16 @@ First public specification and reference implementation.
 - HTML read with parse5, and pages that assemble their content in the browser are detected and reported instead of silently yielding nothing.
 - 51 tests covering schema, semantics, Unicode, XSS payloads, SSRF and HTML extraction.
 
+### Licensing
+
+Split deliberately. `SPEC.md`, `schema/`, `shared/` and `examples/` are
+Apache-2.0; the tooling is Elastic License 2.0. A format that needs permission
+to implement does not get adopted, and an unadopted format protects nothing —
+so the specification is free and the tooling is where commercial terms apply.
+The Elastic License permits commercial use and modification but not offering
+the tooling to third parties as a hosted service. It is source-available, not
+OSI open source.
+
 ### Design decisions worth recording
 
 - **Verification lives in one place.** An earlier draft carried `verified_at` directly on evidence *and* a `verification` object. Two homes for one fact invites drift, so only the object exists.

@@ -197,10 +197,20 @@ reporting checks it never ran is caught by one request.
 
 ## Status
 
-Version 1.0.0 of the specification. A **proposed open web convention**, published openly so it can be implemented, criticised and improved by anyone. It is not a W3C standard.
+Version 1.0.0 of the specification. A **proposed open web convention**, published under Apache-2.0 so it can be implemented, criticised and improved by anyone. It is not a W3C standard.
 
 Feedback on the data model, the security model and the discovery mechanism is the most useful thing you can contribute. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## License
+## Licence
 
-[Apache-2.0](LICENSE).
+Two licences, deliberately:
+
+| What | Licence | What you may do |
+|---|---|---|
+| `SPEC.md`, `schema/`, `shared/`, `examples/` | [Apache-2.0](LICENSE-APACHE-2.0) | Implement the format however you like, in any language, commercial or not, without asking |
+| `reference-implementation/`, `validator/`, `python/`, `tools/` | [Elastic License 2.0](LICENSE) | Read, use, modify and redistribute the tooling, including commercially and inside your own products — but not offer it to third parties as a hosted or managed service |
+
+A convention is worth nothing if implementing it needs permission, so the
+specification is free. The tooling is source-available rather than OSI open
+source; see [NOTICE](NOTICE) for exactly which files fall where, and note that
+some organisations treat non-OSI licences differently in procurement.

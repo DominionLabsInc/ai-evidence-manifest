@@ -55,6 +55,18 @@ Include tests with behavioural changes. If you fix a bug, add the fixture that w
 - Comments explain *why*, not *what*.
 - The system should feel like a web primitive, not a product. If a feature only makes sense with a hosted service behind it, it does not belong here.
 
-## Licence
+## Licence and contributions
 
-Contributions are accepted under [Apache-2.0](LICENSE).
+This repository is licensed in two parts — the specification under Apache-2.0,
+the tooling under the Elastic License 2.0. [NOTICE](NOTICE) says which files
+fall where.
+
+Contributions to the **specification, schema or examples** are accepted under
+Apache-2.0.
+
+Contributions to the **tooling** require a contributor licence agreement
+assigning Dominion Labs the right to license your contribution under both the
+current terms and any future terms. This is what keeps relicensing possible: a
+project cannot change its licence over code it does not have the rights to.
+If that is a problem for you, say so in the issue before writing code and we
+will find another way — it is better to know early than to waste your time.

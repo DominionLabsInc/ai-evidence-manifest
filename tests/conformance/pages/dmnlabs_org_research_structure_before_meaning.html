@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="preload" as="image" href="/images/3.svg" fetchpriority="high">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Structure Before Meaning | Dominion Labs</title>
+<meta name="description" content="Giving a cognitive substrate sight. Vision divides into two halves, perceiving structure and naming concepts.">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Structure Before Meaning">
+<meta property="og:description" content="Vision for a cognitive substrate: algorithms perceive structure, the substrate's own induction learns meaning.">
+<meta property="og:url" content="https://dmnlabs.org/research/structure-before-meaning/">
+<link rel="icon" href="/favicon.ico?v=4" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4">
+<link rel="stylesheet" href="/css/paper.css?v=4">
+<style>
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.9em}
+table.data{width:100%;border-collapse:collapse;margin:1.3em 0;font-size:.95em}
+table.data th,table.data td{text-align:left;padding:.5em .7em;border-bottom:1px solid var(--rule);vertical-align:top}
+table.data thead th{font-weight:600;color:var(--fg);border-bottom:2px solid var(--rule)}
+.data-wrap{overflow-x:auto}
+figure.chart{margin:1.8em 0;padding:1.1em 1.1em .8em;border:1px solid var(--rule);border-radius:8px}
+figure.chart svg{width:100%;height:auto;display:block}
+figure.chart figcaption{margin-top:.7em;font-size:.85em;color:var(--muted);line-height:1.5}
+.chart .axis{stroke:var(--rule);stroke-width:1}
+.chart .grid{stroke:var(--rule);stroke-width:1;stroke-dasharray:3 3;opacity:.5}
+.chart .lbl{fill:var(--muted);font-size:12px;font-family:inherit}
+.chart .val{fill:var(--fg);font-size:12px;font-weight:600;font-family:inherit}
+.chart .cap{fill:var(--fg);font-size:12.5px;font-family:inherit}
+.bar-a{fill:#2563eb}.bar-b{fill:#0d9488}.bar-z{fill:#cbd5e1}
+.lg{font-size:12px;font-family:inherit;fill:var(--fg)}
+.footer-note{margin-top:2.6em;padding-top:1.1em;border-top:1px solid var(--rule);font-size:.85em;color:var(--muted)}
+.pipe{margin:1.6em 0;padding:1.2em 1em;border:1px solid var(--rule);border-radius:8px;background:var(--surface,transparent)}
+.pipe .row{display:flex;flex-wrap:wrap;align-items:stretch;gap:.55em;justify-content:center}
+.pipe .stage{flex:1 1 0;min-width:120px;border:1px solid var(--rule);border-radius:6px;padding:.7em .8em;text-align:center}
+.pipe .stage .h{font-weight:600;font-size:.92em;display:block;margin-bottom:.25em}
+.pipe .stage .d{font-size:.82em;color:var(--muted);line-height:1.35}
+.pipe .arw{display:flex;align-items:center;color:var(--muted);font-size:1.1em}
+.pipe .cap{margin-top:.9em;font-size:.82em;color:var(--muted);text-align:center}
+@media(max-width:640px){.pipe .row{flex-direction:column}.pipe .arw{transform:rotate(90deg);justify-content:center}}
+.pipe,table.data,.data-wrap{break-inside:avoid;page-break-inside:avoid}
+h2,h3{break-after:avoid;page-break-after:avoid}
+#refs{break-before:page;page-break-before:always}
+@media print{
+  .skip-link{display:none!important}
+  .pipe,table.data,.data-wrap{break-inside:avoid;page-break-inside:avoid}
+  #refs{break-before:page;page-break-before:always}
+}
+</style>
+
+    <!-- SEO: canonical, social card, academic citation, structured data -->
+    <link rel="canonical" href="https://dmnlabs.org/research/structure-before-meaning/">
+    <meta name="author" content="Stefan Ragland">
+    <meta property="og:site_name" content="Dominion Labs">
+    <meta property="og:image" content="https://dmnlabs.org/images/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="article:published_time" content="2025-05-20">
+    <meta property="article:author" content="Stefan Ragland">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Structure Before Meaning">
+    <meta name="twitter:description" content="Vision for a cognitive substrate: algorithms perceive structure, the substrate's own induction learns meaning.">
+    <meta name="twitter:image" content="https://dmnlabs.org/images/og-image.png">
+    <!-- Google Scholar citation tags -->
+    <meta name="citation_title" content="Structure Before Meaning">
+    <meta name="citation_author" content="Ragland, Stefan">
+    <meta name="citation_publication_date" content="2025/05/20">
+    <meta name="citation_online_date" content="2025/05/20">
+    <meta name="citation_technical_report_institution" content="Dominion Labs">
+    <meta name="citation_publisher" content="Dominion Labs">
+    <meta name="citation_pdf_url" content="https://dmnlabs.org/research/structure-before-meaning.pdf">
+    <meta name="citation_abstract_html_url" content="https://dmnlabs.org/research/structure-before-meaning/">
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "Structure Before Meaning",
+  "name": "Structure Before Meaning",
+  "description": "Vision for a cognitive substrate: algorithms perceive structure, the substrate's own induction learns meaning.",
+  "url": "https://dmnlabs.org/research/structure-before-meaning/",
+  "datePublished": "2025-05-20T12:00:00Z",
+  "inLanguage": "en",
+  "author": {
+    "@type": "Person",
+    "name": "Stefan Ragland",
+    "url": "https://www.linkedin.com/in/stefan-ragland-a22215391/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Dominion Labs",
+    "url": "https://dmnlabs.org",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://dmnlabs.org/images/1.png"
+    }
+  },
+  "isPartOf": {
+    "@type": "CollectionPage",
+    "name": "Research",
+    "url": "https://dmnlabs.org/research"
+  },
+  "image": "https://dmnlabs.org/images/og-image.png",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://dmnlabs.org/research/structure-before-meaning/"
+  }
+}
+    </script>
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://dmnlabs.org/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Research",
+      "item": "https://dmnlabs.org/research"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Structure Before Meaning",
+      "item": "https://dmnlabs.org/research/structure-before-meaning/"
+    }
+  ]
+}
+    </script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+<div class="paper-nav"><a href="/research">&#8592; Research</a></div>
+<main id="main" class="wrap">
+<header class="paper">
+<div class="eyebrow">Research &#183; Perception &amp; Learning</div>
+<h1>Structure Before Meaning</h1>
+<div class="subtitle">Giving a cognitive substrate sight: a single visual faculty that perceives structure by algorithm and learns meaning by induction</div>
+<div class="byline">Stefan Ragland</div>
+<div class="byline">Dominion Labs Research &amp; Development</div>
+<div class="affil">Dominion Labs</div>
+<div class="affil"><a href="/cdn-cgi/l/email-protection#2b594e584e4a5948436b4f4645474a49580544594c"><span class="__cf_email__" data-cfemail="2b594e584e4a5948436b4f4645474a49580544594c">[email&#160;protected]</span></a></div>
+<div class="date">May 20, 2025</div>
+</header>
+
+<div class="abstract">
+<span class="lbl">Abstract</span>
+<p>Vision is usually treated as one capability, and in the current practice it is bought whole: an image is passed to a network trained on millions of labelled pictures, which returns names. We take a different view. Seeing decomposes into two quite different acts, <em>perceiving structure</em> (there is a large rounded region here, moving, brighter than its surround) and <em>recognising a concept</em> (that region is a face). The first act has been solved by algorithms for two decades, with no learning at all&#8202;<a class="cite" href="#ref-2">[2]</a><a class="cite" href="#ref-3">[3]</a><a class="cite" href="#ref-4">[4]</a>: segmentation, region and object proposals, saliency, local-feature description and instance matching, optical flow. The second act (naming a novel category) is the only place a learned model is genuinely required, and, tellingly, every recent &#8220;training-free&#8221; recogniser supplies it not by any new algorithm but by leaning on a pretrained perceptual backbone&#8202;<a class="cite" href="#ref-11">[11]</a><a class="cite" href="#ref-12">[12]</a><a class="cite" href="#ref-13">[13]</a><a class="cite" href="#ref-14">[14]</a>. Our thesis is that a cognitive substrate which <em>already</em> learns concepts by induction (from a handful of examples, over a knowledge graph it reasons on, holding graded beliefs and abstaining when it cannot ground an answer) can supply the second half of seeing itself, occupying the role the backbone plays, with no neural network anywhere in the loop. We describe the architecture and, as its centre, a methodological commitment: vision is built into the substrate as a <em>faculty</em>, a single entry point for all sight, the way the substrate already has one reader that turns a sentence into propositions and one voice that renders its state into words. The faculty perceives structure with classical vision, admits what it sees through the substrate's single knowledge-admission door as typed, provenance-bearing observations, and lets the substrate learn what those structures <em>mean</em> exactly as it learns everything else. Structure is perceived; meaning is learned; the two are kept separate, and that separation is what makes machine sight legible.</p>
+</div>
+
+<section id="s1"><h2><span class="num">1</span>Two acts, not one</h2>
+<p>Ask what it takes to see a person walk through a doorway and you are really asking two questions with different answers. The first is geometric and photometric: <em>where</em> in the frame is there a coherent thing, how big is it, what is its shape, what are its colours, is it moving and how. The second is semantic: <em>what</em> is that thing: a person, a door, a shadow. David Marr made the case forty years ago that vision is layered in exactly this way, that a system recovers structure before it assigns meaning, and that conflating the layers is a mistake of method, not just of engineering&#8202;<a class="cite" href="#ref-1">[1]</a>.</p>
+<p>The modern practice conflates them on purpose. A convolutional network&#8202;<a class="cite" href="#ref-10">[10]</a> or a vision transformer is handed raw pixels and returns names, having folded perception and recognition into one trained mapping. This works, and it hides the seam. But the seam is real, and where it lies decides what actually needs a model. Almost everything on the <em>structure</em> side of the seam can be computed directly from an image, deterministically, with no training. Only the <em>meaning</em> side (putting a name to a category the system has never been told about) genuinely requires a learner. The interesting question, for a system that is not built on a trained perceptual backbone, is whether it can be the learner for that second half itself.</p>
+<blockquote class="key">Vision is not one capability to be acquired whole. It is the composition of a perception that algorithms already perform and a recognition that must be learned, and the recognition can be learned by the substrate that will reason over it, rather than bought from a network trained elsewhere.</blockquote>
+</section>
+
+<section id="s2"><h2><span class="num">2</span>What algorithms already see</h2>
+<p>The structure side of vision is not a frontier; it is a mature body of work, and it is worth being concrete about how much of &#8220;seeing&#8221; it delivers with no learning in the loop.</p>
+<ul>
+<li><span class="runin">Regions and segments.</span> Efficient graph-based segmentation groups pixels into coherent regions from colour and contrast alone&#8202;<a class="cite" href="#ref-2">[2]</a>; superpixel methods do the same at controllable granularity. The image becomes a small set of parts, each with a boundary.</li>
+<li><span class="runin">Object-like blobs.</span> This is the capability easiest to underestimate. Maximally stable extremal regions detect blobs that persist across thresholds&#8202;<a class="cite" href="#ref-5">[5]</a>; selective search hierarchically groups segments into <em>object proposals</em> (&#8220;here are the thing-shaped regions worth attending to&#8221;) explicitly <em>without any learning procedure</em>, on colour, texture, size and shape cues&#8202;<a class="cite" href="#ref-3">[3]</a>. Objectness measures rank windows by how object-like they are using edge density, saliency, superpixel straddling and colour contrast&#8202;<a class="cite" href="#ref-6">[6]</a>. Together these answer <em>how many</em> distinct things are present, <em>where</em>, and <em>how large</em>: the very &#8220;blob capabilities&#8221; one might assume needed a network.</li>
+<li><span class="runin">Salience.</span> Center&#8211;surround contrast picks out the region a viewer&#8217;s eye would go to first, again from low-level cues&#8202;<a class="cite" href="#ref-6">[6]</a>.</li>
+<li><span class="runin">Shape and geometry.</span> Contours, convexity, aspect ratio and moment invariants&#8202;<a class="cite" href="#ref-7">[7]</a> describe a region&#8217;s form; the Hough transform recovers lines and circles. A region can be called round, elongated or quadrilateral: described, not merely located.</li>
+<li><span class="runin">Instance identity.</span> Scale-invariant local features&#8202;<a class="cite" href="#ref-8">[8]</a> and their fast binary successors&#8202;<a class="cite" href="#ref-9">[9]</a> describe keypoints so distinctively that matching them against a reference image recognises a <em>specific</em> object, logo or face across viewpoint and lighting. This is genuine recognition (of known instances) with no training, only matching.</li>
+<li><span class="runin">Motion.</span> Optical flow&#8202;<a class="cite" href="#ref-15">[15]</a>, frame differencing and background subtraction give per-pixel and per-region motion; tracking follows a region through a clip. For video, &#8220;something moved, here, this fast, and this is the same thing as the previous frame&#8221; is algorithmic.</li>
+<li><span class="runin">Encoded content.</span> Where a scene literally contains encoded symbols (a QR code, a barcode, a fiducial marker) the exact payload is decoded deterministically. This is semantic content read from pixels with perfect fidelity and no model at all.</li>
+</ul>
+<p>The one classical recogniser that crosses into semantics (the boosted cascade that detects faces&#8202;<a class="cite" href="#ref-16">[16]</a>) does so precisely by <em>training</em> a classifier on labelled examples, which is the exception that proves where the seam lies. Everything above it in this list needs no examples; the moment a novel category must be named, learning enters.</p>
+</section>
+
+<section id="s3"><h2><span class="num">3</span>The wall, and how the field gets past it</h2>
+<p>So there is a wall, and it is worth stating precisely rather than vaguely. Classical vision will tell you there is a coherent, salient, roughly round region in the upper-centre of the frame, skin-toned, moving leftward, textured like the reference image of a particular person. What it will not do, unprompted, is emit the word <em>face</em> for a category it has never been shown. Assigning an open-ended name to a novel visual category is the part that requires a learner.</p>
+<p>The instructive fact is <em>how</em> the recent literature clears this wall. A wave of &#8220;training-free&#8221; open-vocabulary recognisers has appeared, and the phrase is easy to misread. They are training-free only in the sense that they add <em>no new fine-tuning</em>. The semantics they emit comes entirely from a <em>pretrained perceptual backbone</em>: methods that assign names to regions do so by harnessing vision foundation models, CLIP for image&#8211;text alignment&#8202;<a class="cite" href="#ref-11">[11]</a>, DINO for emergent object structure&#8202;<a class="cite" href="#ref-12">[12]</a>, SAM for class-agnostic masks&#8202;<a class="cite" href="#ref-13">[13]</a>, stitched together at inference&#8202;<a class="cite" href="#ref-14">[14]</a>. Strip the backbones out and the meaning goes with them; what remains is exactly the structure-level machinery of &#167;2. The honest reading of the state of the art is that there is no algorithm that assigns open-category names without a model that learned those names from data somewhere. The meaning is always learned. The only question is <em>by what</em>, and <em>where</em>.</p>
+<blockquote class="key">Every current recogniser fills the semantic half of vision with a network trained on labelled images. The substrate can fill it instead (with the same faculty it already uses to learn concepts from a few examples) and thereby own the whole of sight without a perceptual model in the loop.</blockquote>
+</section>
+
+<section id="s4"><h2><span class="num">4</span>The substrate already supplies the missing half</h2>
+<p>The reason this is not wishful is that the components the semantic half of vision needs are not new capabilities to be invented; they are faculties the substrate already runs, for language and for action. Naming a perceived structure is a learning-and-reasoning problem, and the substrate is a learning-and-reasoning system.</p>
+<ul>
+<li><span class="runin">It induces general concepts from few examples.</span> The substrate learns relational rules from a handful of demonstrations, and its learned competence is localised to the rules themselves, established, not asserted. Learning &#8220;a region with <em>this</em> signature is a <em>door</em>&#8221; from a few labelled regions is the same act as learning a relational action rule from a few transitions.</li>
+<li><span class="runin">It holds a structured concept graph and reasons over it.</span> Concepts sit in an is-a taxonomy the substrate walks to derive consequences. A recognised <em>poodle</em> inherits <em>dog</em>, <em>mammal</em>, <em>animal</em> with no extra teaching, and recognition immediately becomes inference.</li>
+<li><span class="runin">It holds graded, revisable beliefs and abstains when ungrounded.</span> Every claim the substrate holds is a posterior it can revise, and it treats <em>&#8220;I do not know&#8221;</em> as a first-class answer rather than guessing. A recognition can therefore be held at a confidence, strengthened by corroboration, and withheld when the evidence is thin: the discipline that separates a reliable knower from a fluent one.</li>
+<li><span class="runin">It admits knowledge through one provenance-gated door.</span> New knowledge (taught, researched, or perceived) enters through a single admission point that records where each fact came from and types the values it carries (a number is held as a quantity, a date as a point in time). A perceived observation is admissible evidence like any other, and carries the fact that it came from sight.</li>
+</ul>
+<p>These are the exact ingredients a recogniser needs: a learner to map signatures to categories, a place to put the result so it participates in inference, a way to hold it as revisable belief, and a record of where it came from. The substrate has them already. What it lacks is a way for <em>pixels</em> to reach them.</p>
+</section>
+
+<section id="s5"><h2><span class="num">5</span>Methodology: vision as a faculty of the substrate</h2>
+<p>The way pixels should reach the substrate is not as one more caller that writes observations, but as a <em>faculty</em>: a first-class organ of the substrate with a single entry point, the sole route by which visual input becomes knowledge. This is the substrate&#8217;s governing pattern, applied to sight. The substrate does not have many ad-hoc ways to read text; it has <em>one reader</em>, which turns a sentence into propositions, and every path that consumes language goes through it. It does not have scattered ways to speak; it has <em>one voice</em>, which renders its internal state into words. Vision is built the same way: <strong>one faculty, the single entry point for all sight</strong>, so that &#8220;what the substrate has seen&#8221; has one authoritative answer and one place it is produced: never a second, private path that admits pixels behind the faculty&#8217;s back.</p>
+<p>The parallel to the reader is exact and worth drawing out, because it is the whole method. The reader does not <em>understand</em> a sentence by an inscrutable mapping; it <em>derives</em> a proposition from a token sequence by a procedure the substrate can exhibit, and the meanings of the words are <em>learned</em>, held in the same store as everything else. The vision faculty does not <em>understand</em> an image by an inscrutable mapping; it <em>derives</em> observations from a pixel array by algorithm, and the meanings of the structures are learned, held in the same store. Same shape, different modality. Sight is to pixels what reading is to text.</p>
+
+<div class="pipe">
+<div class="row">
+<div class="stage"><span class="h">Pixels</span><span class="d">an image, a frame, a clip; the only input the faculty accepts</span></div>
+<div class="arw">&#8594;</div>
+<div class="stage"><span class="h">Perceive</span><span class="d">segment, propose object blobs, describe shape / colour / motion, match known instances, decode codes, all algorithmic</span></div>
+<div class="arw">&#8594;</div>
+<div class="stage"><span class="h">Admit</span><span class="d">each blob &amp; the scene enter the one knowledge door as typed, sight-provenanced observations</span></div>
+<div class="arw">&#8594;</div>
+<div class="stage"><span class="h">Interpret</span><span class="d">the substrate names structures by induction &amp; instance match, holds each as a graded belief, or abstains</span></div>
+</div>
+<div class="cap">The vision faculty: one entry point for sight. Structure is perceived on the left; meaning is learned on the right; the substrate&#8217;s existing admission, belief and induction faculties do the second half.</div>
+</div>
+
+<p>The faculty has three internal stages, and the discipline is in which stage is allowed to do what.</p>
+<ol>
+<li><span class="runin">Perceive: structure, by algorithm.</span> The faculty runs the classical pipeline of &#167;2 over the real pixels: it segments the image, proposes object-like blobs, and for each computes a <em>signature</em>, position in the frame, size, shape class, dominant colours, texture and keypoint density, and, for video, motion and track identity. It matches local features against a library of known instances, and decodes any encoded symbols. This stage invents nothing; every value is measured from the image. It does not assign a category.</li>
+<li><span class="runin">Admit: observations, through the one door.</span> Each blob becomes an observation and enters through the substrate&#8217;s single admission point, tagged with sight as its source and with its measured values typed (a width is a quantity, a capture time a point in time). Because admission is the same door taught facts use, a perceived observation fans out to belief and to the relevant domain exactly as a taught fact does, and it is corroborable, revisable, and traceable to the frame it came from. The faculty never writes to the concept store directly; it observes, and admission decides.</li>
+<li><span class="runin">Interpret: meaning, by the substrate.</span> Naming is not the faculty&#8217;s to do; it is the substrate&#8217;s. An instance match yields a name immediately; this is the reference object it was shown. A novel category is learned: shown a few labelled regions, the substrate induces a rule from signature to concept, and thereafter names a matching blob by derivation, inheriting the concept&#8217;s place in the taxonomy. Each naming is held as a graded belief; where neither an instance match nor an induced rule grounds a name, the faculty reports the structure and the substrate says <em>unknown</em>; it does not guess a label. The honesty discipline that governs the substrate&#8217;s answers governs its sight.</li>
+</ol>
+<p>The consequence of building sight as a faculty rather than a pipeline is that vision inherits the substrate&#8217;s whole constitution for free. It is grounded (a recognition traces to a signature plus a learned rule or an instance match), revisable (a belief, not a verdict), legible (one can ask <em>why</em> and get a chain, not an activation), and singular (one authority for what has been seen). And because the naming lives in the substrate, a thing seen and a thing read and a thing told are the same kind of knowledge: the substrate can be <em>told</em> what a new object is in words, and recognise it by sight afterwards, because both routes end at the same concept.</p>
+</section>
+
+<section id="s6"><h2><span class="num">6</span>Why the integration is possible now</h2>
+<p>None of the second half of the faculty is speculative infrastructure. The substrate&#8217;s admission door already accepts perception as a first-class, root-level kind of evidence (a named thing observed in a named condition) distinct from a taught fact only in its provenance. It already types the values an observation carries, so a measured width or a capture date is held as a quantity or a time rather than as a word. Admitted observations already fan out to graded belief and to domain formation through the one learning path. And the induction that would learn a signature-to-concept rule is the same induction the substrate already uses to learn action rules and to learn readings from example sentences. The faculty&#8217;s first stage (the classical perception) is the genuinely new code, and it is a composition of algorithms that have existed for decades and ship in mature libraries. The second stage plugs into a door that is already open; the third stage is a faculty the substrate already runs. Integration is a matter of building the eye and wiring it to organs that already exist, not of inventing the organs.</p>
+</section>
+
+<section id="s7"><h2><span class="num">7</span>What the position predicted, and what has since been measured</h2>
+<p>The argument above is a position, and a position is worth only what it predicts. It makes three claims that can be checked: that the structure side of seeing is already algorithmic, that a substrate which learns concepts can supply the meaning side, and that building sight this way buys an honesty a trained recogniser cannot offer. All three have since been measured on the substrate described here, over real images and with no model in the loop, in runs of 17 and 18 September 2026. The companion paper reports the experiments and their data in full&#8202;<a class="cite" href="#ref-19">[19]</a>; what follows is what they settled.</p>
+
+<p><span class="runin">Structure, by algorithm.</span> Across 149 images the perceptual stage recovered the drawn shape class and the colour family in <strong>100%</strong> of cases. Because the stage is a composition of deterministic operations rather than a learned mapping, its limits can be mapped exactly rather than estimated: the colour measurement survives heavy additive noise, heavy blur, rotation to 45&#176; and partial occlusion, and fails only under desaturation, where the honest answer is that the pixels are no longer that colour. Shape is the fragile measurement and the first to fail wherever a contour is destroyed. Below a stated minimum area an object is not misread, it is not reported at all, and that minimum is a parameter with a stated trade-off rather than a boundary of the approach.</p>
+
+<p><span class="runin">Meaning, by the substrate.</span> Eight categories spanning three shape classes and seven colour families were each taught from two labelled positives and two discriminating counter-examples, and then tested on instances the substrate had never seen. It named held-out members at <strong>95.8%</strong> mean recall, declined <strong>100%</strong> of held-out non-members, produced <strong>zero</strong> false namings and made <strong>zero</strong> language-model calls (Figure&nbsp;1). The rules it induced are the conjunctions a person would write down, such as <span class="mono">circle &#8743; vivid_red &#8594; red-circle</span>, and removing them collapses naming to 0% while abstention stays at 100%: the ability to name is exactly the learned rules and nothing else in the system supplies it.</p>
+
+<p><span class="runin">Through the faculty, from pixels alone.</span> The measurements above give the substrate the features a blob was measured to have, which tests learning and naming but hands the features over. A stricter form of the same test hands over nothing. Each image is shown to the faculty, which perceives it and admits every object-like region as <em>an individual carrying its own measured features</em>, and the substrate then learns and names over exactly what sight admitted and nothing else. In a run of 18 September 2026, over thirty images, every thing the faculty measured was admitted as an individual holding every feature measured of it, <strong>thirty out of thirty</strong>. Three categories were then induced from four such individuals each: two settled on a single rule and named their held-out instances at full recall, and the third had been shown examples that shared a size by accident, so it retained more than one hypothesis and named only what all of them accepted. Abstention across the study was <strong>100%</strong> and false namings <strong>zero</strong>. The route from pixels to a name runs entirely inside the faculty, which is what section&nbsp;5 asks of it.</p>
+
+<figure class="chart fit-sm">
+<svg viewBox="0 0 640 300" role="img" aria-label="The structure side and the meaning side, measured">
+  <g>
+    <line class="axis" x1="150" y1="30" x2="150" y2="250"/>
+    <line class="axis" x1="150" y1="250" x2="620" y2="250"/>
+    <g class="lbl" text-anchor="end">
+      <text x="145" y="254">0</text>
+      <text x="145" y="199">25</text>
+      <text x="145" y="144">50</text>
+      <text x="145" y="89">75</text>
+      <text x="145" y="34">100</text>
+    </g>
+    <line class="grid" x1="150" y1="195" x2="620" y2="195"/>
+    <line class="grid" x1="150" y1="140" x2="620" y2="140"/>
+    <line class="grid" x1="150" y1="85" x2="620" y2="85"/>
+    <line class="grid" x1="150" y1="30" x2="620" y2="30"/>
+  </g>
+  <g>
+    <rect class="bar-a" x="190" y="30" width="70" height="220"/>
+    <rect class="bar-a" x="302" y="30" width="70" height="220"/>
+    <rect class="bar-b" x="416" y="39" width="70" height="211"/>
+    <rect class="bar-b" x="528" y="30" width="70" height="220"/>
+  </g>
+  <g class="val" text-anchor="middle">
+    <text x="224" y="22">100%</text>
+    <text x="338" y="22">100%</text>
+    <text x="450" y="31">96%</text>
+    <text x="564" y="22">100%</text>
+  </g>
+  <g class="lbl" text-anchor="middle">
+    <text x="224" y="266">shape class</text>
+    <text x="224" y="280">recovered</text>
+    <text x="224" y="294">149 images</text>
+    <text x="338" y="266">colour family</text>
+    <text x="338" y="280">recovered</text>
+    <text x="338" y="294">149 images</text>
+    <text x="450" y="266">members</text>
+    <text x="450" y="280">named</text>
+    <text x="450" y="294">8 categories</text>
+    <text x="564" y="266">non-members</text>
+    <text x="564" y="280">declined</text>
+    <text x="564" y="294">8 categories</text>
+  </g>
+</svg>
+<figcaption><strong>Figure 1. The two acts, measured separately.</strong> On the structure side, perception recovers the drawn shape class and colour family over 149 images with no learning in the loop. On the meaning side, the substrate names held-out members of eight categories it was taught from four labelled images each, and declines held-out non-members. False namings across the whole evaluation: zero. Language-model calls: zero.</figcaption>
+</figure>
+
+<p><span class="runin">Honesty, by construction.</span> The discipline this paper asks of sight held under conditions designed to break it. Where the labelled examples admitted more than one hypothesis, the substrate kept them all and named only what every one of them accepted; over 192 held-out non-members that policy produced <strong>no</strong> false naming, where naming on any single consistent hypothesis would have produced twenty-six. It also stated, in its own terms, the case that would settle the question, and supplying that case closed the ambiguity in <strong>sixteen of sixteen</strong> inductions against one of sixteen for randomly chosen examples. A system built this way does not merely fail quietly; it says what it would need in order to stop failing.</p>
+
+<div class="data-wrap"><table class="data">
+<thead><tr><th>Claim made above</th><th>What was measured</th></tr></thead>
+<tbody>
+<tr><td>&#167;2 The structure side is solved without learning</td><td class="mono">shape 100%, colour 100% over 149 images</td></tr>
+<tr><td>&#167;4 The substrate can supply the naming half</td><td class="mono">95.8% recall over 8 categories, 0 model calls</td></tr>
+<tr><td>&#167;5 It abstains rather than guessing</td><td class="mono">100% abstention, 0 false namings</td></tr>
+<tr><td>&#167;5 Naming is carried by what was learned</td><td class="mono">rules ablated: recall 0%, abstention 100%</td></tr>
+<tr><td>&#167;5 Sight is the one entry point for what is seen</td><td class="mono">30 of 30 things admitted as individuals holding every measured feature</td></tr>
+<tr><td>&#167;5 Ambiguity is reported, not resolved by guessing</td><td class="mono">0 false namings; the requested case closed 16 of 16</td></tr>
+</tbody>
+</table></div>
+<div style="font-size:.82em;color:var(--muted);margin-top:-.6em">Table 1. Each claim of the position against the measurement that tested it. Figures are from live runs of the substrate over real images, reported in full in the companion paper&#8202;<a class="cite" href="#ref-19">[19]</a>.</div>
+</section>
+
+<section id="s8"><h2><span class="num">8</span>Discussion</h2>
+<p>The claim of this paper is deliberately narrow and, we think, therefore strong. We do not claim that pixels can be named by algorithm alone: the literature is clear that they cannot, and that every system which appears to do so has a trained model inside it. We claim that <em>naming is the only part that must be learned</em>, that the rest of seeing is algorithmic, and that a substrate which already learns concepts is the right thing to do the naming: not a network trained on someone else&#8217;s labels and frozen, but a learner that improves with what it is shown and reasons with what it recognises.</p>
+<p>Built this way, sight is not a bolted-on classifier but an organ continuous with the rest of the mind. A recognised object is a concept, so it inherits, participates in inference, and can be reasoned about the instant it is seen. It is a belief, so it can be doubted, corroborated, and revised. It has a provenance, so the substrate can always say it knows this because it saw it, in this frame. And it is produced at one entry point, so there is a single, auditable answer to what the system has perceived. The separation of structure from meaning (perceiving first, naming second, by different faculties) is not merely a tidy decomposition. It is what lets a seeing machine tell you <em>why</em> it thinks it saw what it saw, and lets it say, without embarrassment, when it has seen a shape it cannot yet name. Structure before meaning is how sight becomes legible.</p>
+</section>
+
+<section id="refs"><h2>References</h2>
+<ol class="refs">
+  <li id="ref-1">D. Marr. <em>Vision: A Computational Investigation into the Human Representation and Processing of Visual Information</em>. W. H. Freeman, 1982.</li>
+  <li id="ref-2">P. F. Felzenszwalb, D. P. Huttenlocher. Efficient graph-based image segmentation. <em>International Journal of Computer Vision</em>, 59(2):167&#8211;181, 2004.</li>
+  <li id="ref-3">J. R. R. Uijlings, K. E. A. van de Sande, T. Gevers, A. W. M. Smeulders. Selective search for object recognition. <em>International Journal of Computer Vision</em>, 104(2):154&#8211;171, 2013.</li>
+  <li id="ref-4">R. Szeliski. <em>Computer Vision: Algorithms and Applications</em>. Springer, 2010.</li>
+  <li id="ref-5">J. Matas, O. Chum, M. Urban, T. Pajdla. Robust wide-baseline stereo from maximally stable extremal regions. <em>Image and Vision Computing</em>, 22(10):761&#8211;767, 2004.</li>
+  <li id="ref-6">B. Alexe, T. Deselaers, V. Ferrari. Measuring the objectness of image windows. <em>IEEE Transactions on Pattern Analysis and Machine Intelligence</em>, 34(11):2189&#8211;2202, 2012.</li>
+  <li id="ref-7">M.-K. Hu. Visual pattern recognition by moment invariants. <em>IRE Transactions on Information Theory</em>, 8(2):179&#8211;187, 1962.</li>
+  <li id="ref-8">D. G. Lowe. Distinctive image features from scale-invariant keypoints. <em>International Journal of Computer Vision</em>, 60(2):91&#8211;110, 2004.</li>
+  <li id="ref-9">E. Rublee, V. Rabaud, K. Konolige, G. Bradski. ORB: an efficient alternative to SIFT or SURF. In <em>ICCV</em>, 2011.</li>
+  <li id="ref-10">A. Krizhevsky, I. Sutskever, G. E. Hinton. ImageNet classification with deep convolutional neural networks. In <em>NeurIPS</em>, 2012.</li>
+  <li id="ref-11">A. Radford et al. Learning transferable visual models from natural language supervision. In <em>ICML</em>, 2021.</li>
+  <li id="ref-12">M. Caron et al. Emerging properties in self-supervised vision transformers. In <em>ICCV</em>, 2021.</li>
+  <li id="ref-13">A. Kirillov et al. Segment Anything. In <em>ICCV</em>, 2023.</li>
+  <li id="ref-14">Harnessing vision foundation models for high-performance, training-free open-vocabulary segmentation. <em>arXiv:2411.09219</em>, 2024.</li>
+  <li id="ref-15">B. D. Lucas, T. Kanade. An iterative image registration technique with an application to stereo vision. In <em>IJCAI</em>, 1981.</li>
+  <li id="ref-16">P. Viola, M. Jones. Rapid object detection using a boosted cascade of simple features. In <em>CVPR</em>, 2001.</li>
+  <li id="ref-17">G. A. Miller. WordNet: a lexical database for English. <em>Communications of the ACM</em>, 38(11):39&#8211;41, 1995.</li>
+  <li id="ref-18">A. d&#8217;Avila Garcez, L. C. Lamb. Neurosymbolic AI: the 3rd wave. <em>arXiv:2012.05876</em>, 2020.</li>
+  <li id="ref-19">Dominion Labs. Perceive, Induce, Name: vision in a cognitive substrate with no perceptual model. Dominion Labs Research, 2026. <a href="https://dmnlabs.org/research/perceive-induce-name/">dmnlabs.org/research/perceive-induce-name</a></li>
+</ol>
+</section>
+
+<div class="footer-note">
+<p>Dominion Labs Research &amp; Development &#183; May 20, 2025. A thesis on giving the cognitive substrate sight: structure is perceived by algorithm, meaning is learned by the substrate, and vision is built as a single faculty; one entry point for all sight.</p>
+</div>
+
+</main>
+<footer class="paper-foot"><img src="/images/1.png" alt="Dominion Labs" width="96" height="92"><span>Dominion Labs</span></footer>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"902a888b960144f5bb67c0cd7d2fe42a","r":1,"spa":2}' crossorigin="anonymous"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a403b7bd0f5aa4b8',t:'MTc5MDI3MzEzMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

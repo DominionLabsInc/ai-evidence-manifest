@@ -1,0 +1,47 @@
+AI Evidence Manifest
+Copyright 2026 Dominion Labs, Inc.
+
+This repository is licensed in two parts, on purpose.
+
+────────────────────────────────────────────────────────────────────────────
+The specification is free for anyone to implement.        Apache-2.0
+────────────────────────────────────────────────────────────────────────────
+
+  SPEC.md
+  schema/
+  shared/patterns.json
+  examples/
+
+A convention only has value if anyone can implement it without asking
+permission. These files carry the Apache License 2.0 (LICENSE-APACHE-2.0),
+including its patent grant. You may build your own generator, validator or
+consumer for /ai.json, in any language, for any purpose, commercial or not,
+and you owe us nothing.
+
+────────────────────────────────────────────────────────────────────────────
+The tooling is source-available.                          Elastic License 2.0
+────────────────────────────────────────────────────────────────────────────
+
+  reference-implementation/
+  validator/
+  python/
+  tools/
+  deploy/
+
+The `ai-evidence` command-line tool and libraries carry the Elastic License
+2.0 (LICENSE). In short: you may read, use, modify and redistribute them
+freely, including inside your own company and inside commercial products.
+You may not provide them to third parties as a hosted or managed service,
+and you may not remove or circumvent licence-key functionality.
+
+Note that the Elastic License 2.0 is source-available, not an OSI-approved
+open source licence. Some organisations have procurement rules that treat
+those differently, and Linux distributions generally will not package it.
+
+────────────────────────────────────────────────────────────────────────────
+
+If the two-part split is ever ambiguous for a file, the specification licence
+governs anything required to implement the format, and the tooling licence
+governs everything else.
+
+For a licence beyond these terms, contact info@dmnlabs.org.

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="preload" as="image" href="/images/3.svg" fetchpriority="high">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TorinAI Unified Cognitive Substrate | Dominion Labs</title>
+<meta name="description" content="The architecture of TorinAI: a persistent cognitive substrate organising reasoning, learning, memory, action, belief, competence">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TorinAI Unified Cognitive Substrate">
+<meta property="og:description" content="Architecture of persistent learning, reasoning, memory, action, and epistemic governance; one coordinator, one shared cognitive state; no language model in the cognitive loop.">
+<meta property="og:url" content="https://dmnlabs.org/research/unified-substrate/">
+<link rel="icon" href="/favicon.ico?v=4" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4">
+<link rel="stylesheet" href="/css/paper.css?v=4">
+<style>
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:.9em}
+table.data{width:100%;border-collapse:collapse;margin:1.3em 0;font-size:.95em}
+table.data th,table.data td{text-align:left;padding:.5em .7em;border-bottom:1px solid var(--rule);vertical-align:top}
+table.data thead th{font-weight:600;color:var(--fg);border-bottom:2px solid var(--rule)}
+.data-wrap{overflow-x:auto}
+table.data,.data-wrap{break-inside:avoid;page-break-inside:avoid}
+@media print{.skip-link{display:none!important}table.data,.data-wrap{break-inside:avoid;page-break-inside:avoid}}
+</style>
+
+
+    <!-- SEO: canonical, social card, academic citation, structured data -->
+    <link rel="canonical" href="https://dmnlabs.org/research/unified-substrate/">
+    <meta name="author" content="Stefan Ragland">
+    <meta property="og:site_name" content="Dominion Labs">
+    <meta property="og:image" content="https://dmnlabs.org/images/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="article:published_time" content="2025-03-18">
+    <meta property="article:author" content="Stefan Ragland">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="TorinAI Unified Cognitive Substrate">
+    <meta name="twitter:description" content="Architecture of persistent learning, reasoning, memory, action, and epistemic governance; one coordinator, one shared cognitive state; no language model in the cognitive loop.">
+    <meta name="twitter:image" content="https://dmnlabs.org/images/og-image.png">
+    <!-- Google Scholar citation tags -->
+    <meta name="citation_title" content="TorinAI Unified Cognitive Substrate">
+    <meta name="citation_author" content="Ragland, Stefan">
+    <meta name="citation_publication_date" content="2025/03/18">
+    <meta name="citation_online_date" content="2025/03/18">
+    <meta name="citation_technical_report_institution" content="Dominion Labs">
+    <meta name="citation_publisher" content="Dominion Labs">
+    <meta name="citation_pdf_url" content="https://dmnlabs.org/research/unified-substrate.pdf">
+    <meta name="citation_abstract_html_url" content="https://dmnlabs.org/research/unified-substrate/">
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ScholarlyArticle",
+  "headline": "TorinAI Unified Cognitive Substrate",
+  "name": "TorinAI Unified Cognitive Substrate",
+  "description": "Architecture of persistent learning, reasoning, memory, action, and epistemic governance; one coordinator, one shared cognitive state; no language model in the cognitive loop.",
+  "url": "https://dmnlabs.org/research/unified-substrate/",
+  "datePublished": "2025-03-18T12:00:00Z",
+  "inLanguage": "en",
+  "author": {
+    "@type": "Person",
+    "name": "Stefan Ragland",
+    "url": "https://www.linkedin.com/in/stefan-ragland-a22215391/"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Dominion Labs",
+    "url": "https://dmnlabs.org",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://dmnlabs.org/images/1.png"
+    }
+  },
+  "isPartOf": {
+    "@type": "CollectionPage",
+    "name": "Research",
+    "url": "https://dmnlabs.org/research"
+  },
+  "image": "https://dmnlabs.org/images/og-image.png",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://dmnlabs.org/research/unified-substrate/"
+  }
+}
+    </script>
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://dmnlabs.org/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Research",
+      "item": "https://dmnlabs.org/research"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "TorinAI Unified Cognitive Substrate",
+      "item": "https://dmnlabs.org/research/unified-substrate/"
+    }
+  ]
+}
+    </script>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to main content</a>
+<div class="paper-nav"><a href="/research">&#8592; Research</a></div>
+<main id="main" class="wrap">
+<header class="paper">
+<div class="eyebrow">Architecture</div>
+<h1>TorinAI Unified Cognitive Substrate</h1>
+<div class="subtitle">Architecture of persistent learning, reasoning, memory, action, and epistemic governance</div>
+<div class="byline">Stefan Ragland</div>
+<div class="byline">Dominion Labs Research &amp; Development</div>
+<div class="affil">Dominion Labs</div>
+<div class="affil"><a href="/cdn-cgi/l/email-protection#53213620363221303b13373e3d3f3231207d3c2134"><span class="__cf_email__" data-cfemail="04766177616576676c4460696a686566772a6b7663">[email&#160;protected]</span></a></div>
+<div class="date">March 18, 2025</div>
+</header>
+
+<div class="abstract">
+<span class="lbl">Abstract</span>
+<p>TorinAI is a persistent cognitive substrate designed to maintain and develop structured knowledge, memory, beliefs, learned operators, competence, and goals over time. Rather than treating intelligence as the output of a single model invocation, Torin organises cognition as a set of interacting faculties operating over one shared persistent state. Reasoning changes beliefs; experience produces learning; learning produces operators and knowledge; competence shapes exploration; goals drive planning and action; action is independently re-observed; and epistemic governance controls when internally generated conclusions may become authoritative knowledge or executable decisions. TorinAI does not use a language model in its cognition: its persistent state, reasoning, learning, planning, verification, and epistemic authority run on the substrate's own mechanisms. No component consults a language model. The one module that once could, a teaching policy that proposed candidate lessons for the substrate to test against the world, has since been removed together with every model entry point, so the property is structural rather than a matter of configuration. This document describes that architecture; its persistent state, its cognitive faculties, the loops that connect them, its grounded model of task completion, and the governance boundary that decides what becomes authoritative.</p>
+</div>
+
+<section id="s1"><h2><span class="num">1</span>What TorinAI is</h2>
+<p>TorinAI is a <em>persistent cognitive substrate</em>. A conventional model answers a prompt and forgets; the substrate instead holds and develops a body of structured cognition (what it knows, what it has experienced, what it believes and how strongly, what operations it has learned to perform, what it is competent at, and what it is trying to do) and it carries that state forward across time. Intelligence, in this design, is not a single act of generation but the continuing interaction of cognitive faculties over shared, durable state.</p>
+<p>The substrate is organised as one coordinator in which each faculty is a pipeline that reads and writes the same persistent state. The faculties are reasoning, learning, memory, execution, domain modelling, intrinsic motivation, and a model of the system's own state. What makes them a substrate rather than a toolbox is that the output of one becomes structured input to another: a conclusion revises a belief, an action produces an experience, an experience induces an operator, a competence gap raises the motivation to explore. The document that follows is the architecture of that interaction.</p>
+</section>
+
+<section id="s2"><h2><span class="num">2</span>The core architectural principle</h2>
+<p>One principle organises the whole design: <span class="runin">persistent shared state connects cognitive faculties over time.</span> Four commitments follow from it.</p>
+<ul>
+<li><span class="runin">Persistent.</span> Knowledge, beliefs, operators, and competence are durable; the system accumulates and revises them rather than regenerating from scratch.</li>
+<li><span class="runin">Shared.</span> There is one authority for each kind of state (one learning authority, one domain authority, one belief store, one concept graph) read and written by every faculty, not copied per caller.</li>
+<li><span class="runin">Substrate-first.</span> Reasoning, learning, and execution run on the substrate's own mechanisms first; where a step can be proven or an operator applied, it is, deterministically.</li>
+<li><span class="runin">No model in the cognitive loop.</span> The substrate owns state, reasoning, learning, verification, and authority; no language model participates in cognition. No component consults a language model, and no model entry point remains in the system (&#167;<a class="xref" href="#s13">13</a>).</li>
+</ul>
+</section>
+
+<section id="s3"><h2><span class="num">3</span>The unified architecture</h2>
+<p>Figure&nbsp;1 shows the shape of a full cognitive act, from an input or an internal experience to a completed (and independently verified) outcome that becomes the next experience.</p>
+<figure id="fig1"><div class="chart-title">The unified substrate: one cognitive act, end to end</div><div class="canvas"><svg viewBox="0 0 620 660" role="img" aria-label="Unified architecture flow">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker><marker id="ac" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+<rect x="220.0" y="8" width="180" height="40" rx="7" fill="var(--s5)" fill-opacity="0.12" stroke="var(--s5)" stroke-width="1.3"/><text x="310" y="32" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Input / experience</text>
+<line x1="310" y1="48" x2="310" y2="66" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="220.0" y="66" width="180" height="40" rx="7" fill="var(--s5)" fill-opacity="0.12" stroke="var(--s5)" stroke-width="1.3"/><text x="310" y="84" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Interpretation</text><text x="310" y="99" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">language, perception</text>
+<line x1="310" y1="106" x2="310" y2="124" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="40" y="124" width="540" height="66" rx="7" fill="var(--s3)" fill-opacity="0.12" stroke="var(--s3)" stroke-width="1.3"/><text x="310" y="155" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Persistent cognitive state</text><text x="310" y="170" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">concepts · relations · memory · beliefs · operators · competence · domains</text>
+<line x1="170" y1="190" x2="132" y2="248" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="46" y="250" width="172" height="44" rx="7" fill="var(--s2)" fill-opacity="0.12" stroke="var(--s2)" stroke-width="1.3"/><text x="132" y="276" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Reasoning</text>
+<line x1="132" y1="294" x2="310" y2="322" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="310" y1="190" x2="324" y2="248" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="238" y="250" width="172" height="44" rx="7" fill="var(--s3)" fill-opacity="0.12" stroke="var(--s3)" stroke-width="1.3"/><text x="324" y="276" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Learning</text>
+<line x1="324" y1="294" x2="310" y2="322" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="450" y1="190" x2="516" y2="248" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="430" y="250" width="172" height="44" rx="7" fill="var(--s4)" fill-opacity="0.12" stroke="var(--s4)" stroke-width="1.3"/><text x="516" y="276" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Self model</text>
+<line x1="516" y1="294" x2="310" y2="322" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="215.0" y="322" width="190" height="44" rx="7" fill="var(--s1)" fill-opacity="0.12" stroke="var(--s1)" stroke-width="1.3"/><text x="310" y="342" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Goal / planning</text><text x="310" y="357" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">plan over learned operators</text>
+<line x1="310" y1="366" x2="310" y2="384" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="215.0" y="384" width="190" height="44" rx="7" fill="var(--s1)" fill-opacity="0.12" stroke="var(--s1)" stroke-width="1.3"/><text x="310" y="404" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Action</text><text x="310" y="419" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">substrate-first, in the world</text>
+<line x1="310" y1="428" x2="220" y2="452" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="310" y1="428" x2="400" y2="452" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="130.0" y="452" width="160" height="46" rx="7" fill="var(--s6)" fill-opacity="0.12" stroke="var(--s6)" stroke-width="1.3"/><text x="210" y="473" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">DID</text><text x="210" y="488" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">the actor's own report</text>
+<rect x="330.0" y="452" width="160" height="46" rx="7" fill="var(--s3)" fill-opacity="0.12" stroke="var(--s3)" stroke-width="1.3"/><text x="410" y="473" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">SAW</text><text x="410" y="488" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">fresh, independent re-observation</text>
+<line x1="210" y1="498" x2="310" y2="522" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<line x1="410" y1="498" x2="310" y2="522" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="205.0" y="522" width="210" height="46" rx="7" fill="var(--s4)" fill-opacity="0.12" stroke="var(--s4)" stroke-width="1.3"/><text x="310" y="543" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Completion belief</text><text x="310" y="558" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">accepted only past the substrate's own doubt</text>
+<line x1="310" y1="568" x2="310" y2="586" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="205.0" y="586" width="210" height="40" rx="7" fill="var(--s5)" fill-opacity="0.12" stroke="var(--s5)" stroke-width="1.3"/><text x="310" y="610" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Done   /   recovery &amp; learning</text>
+<path d="M 415 606 C 606 606, 606 28, 402 28" fill="none" stroke="var(--accent)" stroke-width="1.4" stroke-dasharray="6 4" marker-end="url(#ac)"/>
+<text x="610" y="320" text-anchor="middle" font-family="inherit" font-size="10" fill="var(--muted)" transform="rotate(90 610 320)">the outcome becomes new experience</text>
+</svg></div>
+<figcaption><span class="fnum">Figure 1.</span> Input and experience are interpreted into the shared persistent state; reasoning, learning, and the self-model read and revise it; goals plan over learned operators; action runs in the world; completion is decided by combining the actor's own report (DID) with a fresh, independent re-observation (SAW), accepted only past the substrate's own doubt; and the outcome (done, or a recovery that produces learning) becomes new experience. The state in the centre is shared by every faculty.</figcaption></figure>
+<p>Read top to bottom, this is one pass; read as a whole, it is a loop; every outcome re-enters as experience, so the system's later behaviour is shaped by its earlier acts. The sections that follow define the persistent state at the centre and then each faculty in turn.</p>
+</section>
+
+<section id="s4"><h2><span class="num">4</span>Persistent cognitive state</h2>
+<p>The persistent state is the substrate's memory of itself and its world. Its elements are distinct and each has an authority.</p>
+<ul>
+<li><span class="runin">Concepts.</span> The units of what the system knows: the nodes of a typed concept graph, each a thing the system can reason about.</li>
+<li><span class="runin">Relations.</span> Typed, polarity-bearing edges between concepts (<em>is-a</em>, <em>part-of</em>, denials, and more); how the graph encodes structure rather than a bag of facts.</li>
+<li><span class="runin">Memory.</span> Retained experiences (what happened, what was said, what an action produced) stored when worth keeping and retrievable by content and relation, then consolidated and abstracted over time.</li>
+<li><span class="runin">Beliefs.</span> Propositions the system currently accepts, each held with a calibrated uncertainty and revisable as evidence arrives (&#167;<a class="xref" href="#s10">10</a>).</li>
+<li><span class="runin">Operators.</span> Generalisable, variable-carrying transformations the system has learned: the actions it can take and the derivations it can perform, with explicit add and remove effects.</li>
+<li><span class="runin">Competence.</span> A first-class estimate, per subject, of what the system can actually <em>do</em>, distinct from how much it knows (&#167;<a class="xref" href="#s7">7</a>).</li>
+<li><span class="runin">Domains.</span> Subjects (coherent clusters of concepts and operators) created automatically as knowledge accumulates, so cognition is organised rather than flat.</li>
+<li><span class="runin">Experience.</span> Action&#8211;outcome traces: the before-state, the action, and the re-observed after-state that feed learning.</li>
+</ul>
+<p>These are not independent stores; they form a cycle (Figure&nbsp;2). Experience is retained as memory; memory feeds learning; learning writes operators, concepts, and beliefs; those drive reasoning and planning; planning drives action; action produces the next experience.</p>
+<figure id="fig2"><div class="chart-title">How the persistent state develops</div><div class="canvas"><svg viewBox="0 0 780 210" role="img" aria-label="Persistent state cycle">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker><marker id="ac" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+<rect x="8" y="46" width="112" height="58" rx="7" fill="var(--s5)" fill-opacity="0.12" stroke="var(--s5)" stroke-width="1.2"/>
+<text x="64" y="79" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Experience</text>
+<rect x="133" y="46" width="112" height="58" rx="7" fill="var(--s4)" fill-opacity="0.12" stroke="var(--s4)" stroke-width="1.2"/>
+<text x="189" y="79" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Memory</text>
+<line x1="120" y1="75" x2="129" y2="75" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="258" y="46" width="112" height="58" rx="7" fill="var(--s3)" fill-opacity="0.12" stroke="var(--s3)" stroke-width="1.2"/>
+<text x="314" y="79" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Learning</text>
+<line x1="245" y1="75" x2="254" y2="75" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="382" y="46" width="112" height="58" rx="7" fill="var(--s3)" fill-opacity="0.12" stroke="var(--s3)" stroke-width="1.2"/>
+<text x="438" y="71" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Operators, concepts</text>
+<text x="438" y="86" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">&amp; beliefs</text>
+<line x1="370" y1="75" x2="378" y2="75" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="507" y="46" width="112" height="58" rx="7" fill="var(--s2)" fill-opacity="0.12" stroke="var(--s2)" stroke-width="1.2"/>
+<text x="563" y="79" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Reasoning</text>
+<line x1="494" y1="75" x2="503" y2="75" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#a)"/>
+<rect x="632" y="46" width="112" height="58" rx="7" fill="var(--s1)" fill-opacity="0.12" stroke="var(--s1)" stroke-width="1.2"/>
+<text x="688" y="71" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Planning</text>
+<text x="688" y="86" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">&amp; action</text>
+<line x1="619" y1="75" x2="628" y2="75" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#a)"/>
+<path d="M 688 104 C 688 178, 64 178, 64 106" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#ac)"/>
+<text x="390" y="174" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--muted)">action produces new experience: the cycle repeats</text>
+</svg></div>
+<figcaption><span class="fnum">Figure 2.</span> The state is not a set of shelves but a cycle. Learning is the hinge: it turns retained experience into the operators, concepts, and beliefs that reasoning and planning consume, and action closes the loop by producing fresh experience.</figcaption></figure>
+</section>
+
+<section id="s5"><h2><span class="num">5</span>Reasoning</h2>
+<p>Reasoning answers a question from the substrate's own knowledge. A natural-language query is first <em>formalised</em> into a logical query; the reasoner then selects how to answer it and consults the appropriate mechanism, substrate-first and with no model fallback:</p>
+<ul>
+<li><span class="runin">Deduction</span> over held rules and premises;</li>
+<li><span class="runin">Taxonomic reasoning</span> over the concept graph (an <em>is-a</em> query walks typed relations to a verdict);</li>
+<li><span class="runin">Rule chaining</span>, composing held conditionals over held facts to reach a multi-step conclusion;</li>
+<li><span class="runin">Analogy and cross-domain transfer</span>, mapping structure from one subject onto another.</li>
+</ul>
+<p>Two behaviours are architectural, not incidental. When the reasoner meets a query whose answer is not in vocabulary, it performs <span class="runin">gap diagnosis</span>, distinguishing a missing fact (acquire it) from a missing operation (practise it). And when it cannot ground an answer it returns <span class="runin">unsupported</span> rather than a plausible guess: a knowledge-grounded reasoner refuses where a generator would confabulate&nbsp;<a class="cite" href="#r4">[4]</a>.</p>
+</section>
+
+<section id="s6"><h2><span class="num">6</span>Learning</h2>
+<p>Learning is the one path by which the system changes. It has four modes, all writing the same shared state through one authority.</p>
+<ul>
+<li><span class="runin">Instruction, knowledge acquisition.</span> A fact or rule, admitted with provenance&nbsp;<a class="cite" href="#r18">[18]</a>, becomes a concept, a relation, and where appropriate a belief.</li>
+<li><span class="runin">Experience, operator induction.</span> From before/action/after demonstrations, the system induces a general, variable-carrying operator, least-general generalisation over the positives, with the preconditions the negatives force into the body&nbsp;<a class="cite" href="#r12">[12]</a>. Induction runs off the acting path, so acting stays cheap and learning is the deliberate, always-online half.</li>
+<li><span class="runin">Consolidation, generalisation and organisation.</span> Related memories cluster into higher-level structure; subjects crystallise into domains; redundant knowledge is merged.</li>
+<li><span class="runin">Belief revision.</span> New evidence moves a posterior rather than overwriting a fact; what was believed can change as the world does (&#167;<a class="xref" href="#s10">10</a>).</li>
+</ul>
+<p>A learned operator does not become a capability the moment it is induced. It is a candidate until independent experience confirms it; only then is it promoted to executable and allowed to act (&#167;<a class="xref" href="#s11">11</a>). This is the point at which knowledge becomes competence.</p>
+</section>
+
+<section id="s7"><h2><span class="num">7</span>Knowledge versus competence</h2>
+<p>The substrate tracks two different kinds of mastery over a subject and keeps them orthogonal (Figure&nbsp;3): <span class="runin">declarative knowledge</span> (how much it knows) and <span class="runin">procedural competence</span>, what it can actually perform. Conflating them is a failure mode: a missing fact and a missing operation call for opposite responses, one closed by acquisition and the other by practice. Because the two axes are measured independently, the system can diagnose <em>which</em> kind of gap it faces and abstain honestly on that basis: a boundary a single-channel generator does not represent&nbsp;<a class="cite" href="#r14">[14]</a>. This distinction is treated in depth in a companion study.<a class="cite" href="#r-kc" style="text-decoration:none"></a></p>
+<figure id="fig3"><div class="chart-title">Two independent axes of mastery</div><div class="canvas"><svg viewBox="0 0 520 300" role="img" aria-label="Knowledge versus competence">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker><marker id="ac" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+<line x1="70" y1="250" x2="470" y2="250" stroke="var(--fg)" stroke-width="1.2" marker-end="url(#a)"/>
+<line x1="70" y1="250" x2="70" y2="30" stroke="var(--fg)" stroke-width="1.2" marker-end="url(#a)"/>
+<text x="270" y="284" text-anchor="middle" font-family="inherit" font-size="11" fill="var(--fg)">Declarative knowledge, how much it knows</text>
+<text x="30" y="140" text-anchor="middle" font-family="inherit" font-size="11" fill="var(--fg)" transform="rotate(-90 30 140)">Procedural competence, what it can <tspan font-style="italic">do</tspan></text>
+<circle cx="150" cy="200" r="7" fill="var(--s6)"/><text x="150" y="186" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Told, cannot do</text><text x="150" y="222" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">knowledge gap</text>
+<circle cx="370" cy="90" r="7" fill="var(--s3)"/><text x="370" y="76" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Knows &amp; can do</text><text x="370" y="112" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">mastery</text>
+<circle cx="150" cy="90" r="7" fill="var(--s5)"/><text x="150" y="76" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Neither</text><text x="150" y="112" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">unexplored</text>
+<circle cx="370" cy="200" r="7" fill="var(--s4)"/><text x="370" y="186" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Can do, little told</text><text x="370" y="222" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">competence gap</text>
+</svg></div>
+<figcaption><span class="fnum">Figure 3.</span> Knowing a fact and being able to act are separate properties. Teaching raises the horizontal axis; practising an operation raises the vertical. The system reads both, so &#8220;I was never told this&#8221; is never mistaken for &#8220;I cannot do this.&#8221; See <a href="/research/knowledge-and-competence/">Knowing a Fact vs. Being Able to Act</a>.</figcaption></figure>
+</section>
+
+<section id="s8"><h2><span class="num">8</span>Goal-directed action</h2>
+<p>Action is planned over learned operators, not scripted. Given a goal state, the execution faculty diagnoses the gap between the current world and the goal, plans a sequence of learned operators that would close it, and drives each step. Where a step can already be proven it runs deterministically; where the goal is a question it is answered through the reasoning loop. A step that fails is not a dead end: the reason routes the response: a missing method is retried by a different one, an unreachable goal means the plan was wrong and is redesigned, a blocker outside the system is surfaced honestly. Every attempt, success or failure, becomes experience that learning can consume; validated experience can update operators and competence, so future performance may change as a result of prior action.</p>
+</section>
+
+<section id="s9"><h2><span class="num">9</span>Grounded task completion</h2>
+<p>Deciding that a task is <em>done</em> is a cognitive act in its own right, and one the substrate does not delegate to a success flag. Completion is a belief the system forms about the world and must accept past its own doubt. It rests on two epistemically distinct kinds of evidence, named for readability rather than borrowed from any other field. <span class="runin">DID</span> (&#8220;did&#8221;) is execution-side evidence: the action reported producing the intended effect. <span class="runin">SAW</span> (&#8220;saw&#8221;) is observation-side evidence: a fresh, independent re-observation of the world confirms the intended effect actually holds, without reusing the actor's report. These fail independently: a tool can report success while changing nothing, and independent observation is what catches it. Completion combines the two under an independence rule and is accepted only when the resulting posterior clears the system's standing confidence bar; the high bar itself forces the fresh observation. Because the confirming channel is independent of the actor, a task cannot be marked done on the strength of the same channel that performed (or faked) the action. This architecture is developed, with measurements, in a companion study: <a href="/research/grounded-task-completion/">Task Completion as an Internal, Grounded Judgment</a>.</p>
+</section>
+
+<section id="s10"><h2><span class="num">10</span>Belief and epistemic state</h2>
+<p>Beliefs are how the substrate holds uncertain propositions. Each belief has a <span class="runin">prior</span>, is moved by <span class="runin">evidence</span> to a <span class="runin">posterior</span>, and carries the <span class="runin">provenance</span> of what supports it. The update respects two properties that keep confidence honest. <span class="runin">Independence:</span> confirmations that share a source or a causal lineage collapse to one before they compound, so correlated evidence cannot be counted many times: a single grounding leaves a belief calibrated, not certain. <span class="runin">Reversal:</span> a belief is revisable, so a later observation that contradicts it moves the posterior back rather than being ignored. This is the machinery behind grounded completion and behind the governance boundary of the next section.</p>
+</section>
+
+<section id="s11"><h2><span class="num">11</span>Systemic epistemic governance</h2>
+<p>The substrate continuously derives conclusions, induces rules, and forms beliefs. Not all of them should be allowed to change what the system treats as authoritative or to trigger an action. Governance draws that boundary (Figure&nbsp;4): a proposition may be <em>derived</em> and held in soft cognition (reasoned over, reinforced, generalised from) while being prohibited from becoming authoritative, or from acting, until it passes independent, non-circular validation. This separates the ability to derive a proposition from the authority to persist and act on it, and it is what keeps an internal error from escalating itself into authority.</p>
+<figure id="fig4"><div class="chart-title">From derivation to authority to action</div><div class="canvas"><svg viewBox="0 0 520 424" role="img" aria-label="Epistemic governance boundary">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker><marker id="ac" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+<rect x="84" y="12" width="352" height="56" rx="7" fill="var(--s2)" fill-opacity="0.12" stroke="var(--s2)" stroke-width="1.3"/><text x="260" y="38" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Derivation</text><text x="260" y="53" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">a conclusion is drawn</text>
+<line x1="260" y1="68" x2="260" y2="90" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="84" y="90" width="352" height="56" rx="7" fill="var(--s4)" fill-opacity="0.12" stroke="var(--s4)" stroke-width="1.3"/><text x="260" y="116" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Soft cognition</text><text x="260" y="131" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">held, revisable, non-authoritative</text>
+<line x1="260" y1="146" x2="260" y2="194" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="84" y="194" width="352" height="56" rx="7" fill="var(--s5)" fill-opacity="0.12" stroke="var(--s5)" stroke-width="1.3"/><text x="260" y="220" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Validation</text><text x="260" y="235" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">independent, non-circular evidence</text>
+<line x1="260" y1="250" x2="260" y2="272" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="84" y="272" width="352" height="56" rx="7" fill="var(--s3)" fill-opacity="0.12" stroke="var(--s3)" stroke-width="1.3"/><text x="260" y="298" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Authoritative knowledge</text><text x="260" y="313" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">permitted to persist</text>
+<line x1="260" y1="328" x2="260" y2="350" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#a)"/>
+<rect x="84" y="350" width="352" height="56" rx="7" fill="var(--s1)" fill-opacity="0.12" stroke="var(--s1)" stroke-width="1.3"/><text x="260" y="376" text-anchor="middle" font-family="inherit" font-size="11.5" fill="var(--fg)" font-weight="700">Executable action</text><text x="260" y="391" text-anchor="middle" font-family="inherit" font-size="9.5" fill="var(--muted)">permitted to act</text>
+<line x1="68" y1="172" x2="452" y2="172" stroke="var(--accent)" stroke-width="1.3" stroke-dasharray="5 4" opacity="0.85"/>
+<text x="260" y="166" text-anchor="middle" font-family="inherit" font-size="10" fill="var(--accent)" font-weight="700">the boundary, independent validation</text>
+</svg></div>
+<figcaption><span class="fnum">Figure 4.</span> The governance boundary. Derivations live in a soft, revisable tier and are never returned as authoritative or allowed to act until validated on evidence independent of their own derivation: the point marked &#8220;the boundary.&#8221; The formal semantics and guarantees are given in <a href="/research/systemic-epistemic-governance/">Systemic Epistemic Governance</a>.</figcaption></figure>
+</section>
+
+<section id="s12"><h2><span class="num">12</span>Cross-faculty loops</h2>
+<p>The faculties are connected by loops in which each one's output is another's input. Three are load-bearing.</p>
+<p><span class="runin">The experience&#8211;learning loop.</span> Action produces an outcome; the outcome, re-observed, is retained as experience; experience induces operators and revises knowledge; the updated operators and knowledge shape the next plan. Competence grows from doing.</p>
+<p><span class="runin">The completion loop.</span> Action yields DID; an independent SAW is taken; the two form a completion belief; the verdict is done, or a recovery that itself produces experience (&#167;<a class="xref" href="#s9">9</a>).</p>
+<p><span class="runin">The intrinsic-learning loop.</span> A competence gap raises an epistemic uncertainty; the uncertainty surfaces as an exploration target; exploring produces experience; experience updates the competence belief; the uncertainty falls and the subject stops attracting attention (Figure&nbsp;5). Attention thus follows what is uncertain and learnable&nbsp;<a class="cite" href="#r9">[9]</a>,<a class="cite" href="#r10">[10]</a>, not a fixed agenda.</p>
+<figure id="fig5"><div class="chart-title">The intrinsic-learning loop</div><div class="canvas"><svg viewBox="0 0 780 210" role="img" aria-label="Intrinsic learning loop">
+<defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker><marker id="ac" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L6,3 L0,6 Z" fill="var(--accent)"/></marker></defs>
+<rect x="8" y="46" width="112" height="58" rx="7" fill="var(--s2)" fill-opacity="0.12" stroke="var(--s2)" stroke-width="1.2"/>
+<text x="64" y="72" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Epistemic</text><text x="64" y="88" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">uncertainty</text>
+<rect x="133" y="46" width="112" height="58" rx="7" fill="var(--s5)" fill-opacity="0.12" stroke="var(--s5)" stroke-width="1.2"/>
+<text x="189" y="72" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Exploration</text><text x="189" y="88" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">target</text>
+<line x1="120" y1="75" x2="129" y2="75" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ac)"/>
+<rect x="258" y="46" width="112" height="58" rx="7" fill="var(--s1)" fill-opacity="0.12" stroke="var(--s1)" stroke-width="1.2"/>
+<text x="314" y="72" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">World</text><text x="314" y="88" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">interaction</text>
+<line x1="245" y1="75" x2="254" y2="75" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ac)"/>
+<rect x="382" y="46" width="112" height="58" rx="7" fill="var(--s3)" fill-opacity="0.12" stroke="var(--s3)" stroke-width="1.2"/>
+<text x="438" y="72" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Operator</text><text x="438" y="88" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">learned</text>
+<line x1="370" y1="75" x2="378" y2="75" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ac)"/>
+<rect x="507" y="46" width="112" height="58" rx="7" fill="var(--s4)" fill-opacity="0.12" stroke="var(--s4)" stroke-width="1.2"/>
+<text x="563" y="72" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Competence</text><text x="563" y="88" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">updated</text>
+<line x1="494" y1="75" x2="503" y2="75" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ac)"/>
+<rect x="632" y="46" width="112" height="58" rx="7" fill="var(--s2)" fill-opacity="0.12" stroke="var(--s2)" stroke-width="1.2"/>
+<text x="688" y="72" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)" font-weight="700">Uncertainty</text><text x="688" y="88" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--fg)">falls</text>
+<line x1="619" y1="75" x2="628" y2="75" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#ac)"/>
+<path d="M 688 104 C 688 176, 64 176, 64 106" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#ac)"/>
+<text x="390" y="172" text-anchor="middle" font-family="inherit" font-size="10.5" fill="var(--muted)">a learned subject stops attracting attention</text>
+</svg></div>
+<figcaption><span class="fnum">Figure 5.</span> Motivation is downstream of epistemic uncertainty and upstream of learning; learning reduces the uncertainty that initiated the exploration. The loop closes across four faculties, motivation, execution, learning, and beliefs.</figcaption></figure>
+</section>
+
+<section id="s13"><h2><span class="num">13</span>Coordination, and the place of language models</h2>
+<p><span class="runin">Coordination.</span> The faculties run in one coordinator over one shared state. A reactive event spine lets one faculty's outcome wake another (a demonstration triggers induction, an admitted fact triggers domain crystallisation, a health event triggers recovery) so the system is event-driven rather than a fixed script. Alongside the reactive spine, a band of always-on disciplines runs on one scheduler: memory consolidation, self-review, knowledge refresh, security, health and recovery, and a constitutional self-check. Each kind of state has a single authority, so there is one owner for beliefs, one for domains, one for learning.</p>
+<p><span class="runin">Language models.</span> No language model is part of the cognitive loop: the substrate reasons, learns, plans, acts, and verifies on its own mechanisms, and the paths described in this document consult none. A single teaching module could once consult one: a teacher policy that proposed a candidate lesson for the substrate to test against the world. That module has since been removed, along with every other entry point through which a model could be called, so there is now nothing in the system to consult. A model never owned state, never decided what was true and never granted authority, and the substrate is unchanged by their absence, which is what made removing them possible rather than disruptive.</p>
+</section>
+
+<section id="s14"><h2><span class="num">14</span>Current implementation and validation</h2>
+<p><span class="runin">Scale.</span> Measured on 18 September 2026, the core of the implementation is about 200,000 lines across 284 modules, over a persistent graph of roughly 258,000 concepts and 206,000 relations, with about 205,000 revisable beliefs, and subjects the substrate maintains, several of which it organised for itself. Scale is context, not the claim; the architecture above is the claim.</p>
+<p><span class="runin">Validation.</span> The individual mechanisms of this architecture are studied, model-free, in companion research: relational operator induction with a causal ablation (<a href="/research/model-free-rule-induction/">Learning Relational Action Rules Without a Model</a>); reading as a derived program (<a href="/research/reading-as-a-program/">A Reading Is a Program over a Sequence</a>); the knowledge/competence distinction (<a href="/research/knowledge-and-competence/">Knowing a Fact vs. Being Able to Act</a>); grounded completion (<a href="/research/grounded-task-completion/">Task Completion as an Internal, Grounded Judgment</a>); the governance boundary (<a href="/research/systemic-epistemic-governance/">Systemic Epistemic Governance</a>); the two ways the substrate knows and the discipline that keeps them honest (<a href="/research/reasoned-vs-believed/">Reasoned vs. Believed</a>); and sight, as structure perceived by algorithm and meaning learned by the substrate (<a href="/research/structure-before-meaning/">Structure Before Meaning</a>, <a href="/research/perceive-induce-name/">Perceive, Induce, Name</a>). That the faculties described here run together as one system, over one shared state, is checked in situ against the running substrate rather than asserted, summarised in Appendix&nbsp;A.</p>
+<p><span class="runin">Where each mechanism stands.</span> Each study was re-run against the live substrate in September 2026, so the table below reports the architecture as it currently behaves rather than as it behaved when each paper was written.</p>
+<div class="data-wrap"><table class="data">
+<thead><tr><th>Faculty</th><th>What was measured</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Learning</td><td>relational rules induced from demonstrations, with a causal ablation</td><td class="mono">14/14 held out; competence localised to the rules</td></tr>
+<tr><td>Reasoning</td><td>fifty knowledge questions, answers withheld</td><td class="mono">37/37 correct on those it answered, 13 abstentions</td></tr>
+<tr><td>Knowledge and competence</td><td>the two axes, and a registered declarative gap</td><td class="mono">16/16 checks; competence unmoved at 0.500</td></tr>
+<tr><td>Execution</td><td>who closes a pursuit, and from what</td><td class="mono">27/27 checks; closed once, from the re-observed world</td></tr>
+<tr><td>Governance</td><td>promotion gate, and one error propagated to depth six</td><td class="mono">false rule refused; contamination 0 at every depth</td></tr>
+<tr><td>Perception</td><td>naming what was seen, from pixels alone</td><td class="mono">30/30 things admitted with their measured features; 0 false namings</td></tr>
+</tbody></table></div>
+<div style="font-size:.82em;color:var(--muted);margin-top:-.6em">Each row is reported in full, with its data, in the companion paper for that faculty. Every run was model-free.</div></p>
+</section>
+
+<hr class="sep">
+<section id="appa"><h2>Appendix A &#183; Architecture verification</h2>
+<p>The architecture is not only described but exercised: the current system is booted and each faculty's pipeline is driven through the one coordinator in situ, recording present behaviour rather than a stored result. Reasoning answered a taxonomic query from its own knowledge and refused an ungrounded one; execution ran a task and accepted it only after re-observing the world; a belief moved from a low prior to a calibrated posterior on a single grounding rather than saturating; the domain authority held its subjects; motivation surfaced targets from measured uncertainty; memory stored and retrieved. Every pipeline ran, and did so with no language model consulted where a model is not the point. Wiredness is checked against live call sites and scheduler registrations, so a capability counts as part of the running system only where the running system actually reaches it; experimental or deprecated interfaces are not considered part of the canonical substrate unless they are connected to the active architecture.</p>
+</section>
+
+<hr class="sep">
+<section id="refs"><h2>References</h2>
+<ol class="refs">
+<li id="r1">J. E. Laird, A. Newell, P. S. Rosenbloom. SOAR: an architecture for general intelligence. <em>Artificial Intelligence</em>, 33(1), 1987.</li>
+<li id="r2">J. R. Anderson et al. An integrated theory of the mind. <em>Psychological Review</em>, 111(4), 2004.</li>
+<li id="r3">J. E. Laird, C. Lebiere, P. S. Rosenbloom. A standard model of the mind. <em>AI Magazine</em>, 38(4), 2017.</li>
+<li id="r4">P. Wang. <em>Non-Axiomatic Logic: A Model of Intelligent Reasoning</em>. World Scientific, 2013.</li>
+<li id="r5">B. Goertzel. <em>Engineering General Intelligence</em> (CogPrime). Atlantis Press, 2014.</li>
+<li id="r6">B. Goertzel et al. OpenCog Hyperon. <em>arXiv:2310.18318</em>, 2023.</li>
+<li id="r7">J. Bach. Modeling motivation in MicroPsi&nbsp;2. In <em>AGI</em>, 2015.</li>
+<li id="r9">P.-Y. Oudeyer, F. Kaplan. What is intrinsic motivation? A typology of computational approaches. <em>Frontiers in Neurorobotics</em>, 1, 2007.</li>
+<li id="r10">J. Schmidhuber. Formal theory of creativity, fun, and intrinsic motivation. <em>IEEE Trans. Autonomous Mental Development</em>, 2(3), 2010.</li>
+<li id="r11">J. Pearl. <em>Probabilistic Reasoning in Intelligent Systems</em>. Morgan Kaufmann, 1988.</li>
+<li id="r12">S. Muggleton. Inductive logic programming. <em>New Generation Computing</em>, 8(4), 1991.</li>
+<li id="r13">R. E. Fikes, N. J. Nilsson. STRIPS. <em>Artificial Intelligence</em>, 2(3&#8211;4), 1971.</li>
+<li id="r14">G. Ryle. <em>The Concept of Mind</em>. Hutchinson, 1949.</li>
+<li id="r15">J. Doyle. A truth maintenance system. <em>Artificial Intelligence</em>, 12(3), 1979.</li>
+<li id="r18">J. Cheney, L. Chiticariu, W.-C. Tan. Provenance in databases. <em>Foundations and Trends in Databases</em>, 1(4), 2009.</li>
+<li id="r19">M. Minsky. <em>The Society of Mind</em>. Simon &amp; Schuster, 1986.</li>
+</ol>
+</section>
+
+<div class="foot">Dominion Labs Research &#183; dmnlabs.org/research</div>
+</main>
+<footer class="paper-foot"><img src="/images/1.png" alt="Dominion Labs" width="96" height="92"><span>Dominion Labs</span></footer>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a403b7bc6ef6a4b8',t:'MTc5MDI3MzEzMA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"902a888b960144f5bb67c0cd7d2fe42a","r":1,"spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>
