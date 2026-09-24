@@ -37,14 +37,22 @@ describe('shared artifacts have not drifted', () => {
   // schema change shipped to one implementation and not the other.
   const pairs = [
     ['schema/ai-evidence-manifest.schema.json', 'python/ai_evidence/ai-evidence-manifest.schema.json'],
-    ['shared/patterns.json', 'python/ai_evidence/patterns.json']
+    ['shared/patterns.json', 'python/ai_evidence/patterns.json'],
+    // Not bundled for the wheel but for the sdist: without these the sdist
+    // cannot build a wheel, because pyproject.toml may not reach above its own
+    // root. That failure shipped once, in 0.2.0.
+    ['LICENSE', 'python/LICENSE'],
+    ['NOTICE', 'python/NOTICE']
   ];
   for (const [source, copy] of pairs) {
-    test(`${copy} matches ${source}`, { skip: !fs.existsSync(path.join(ROOT, copy)) }, () => {
+    // A missing copy fails rather than skips. Skipping would let the packaging
+    // break silently, which is the exact failure this suite exists to catch.
+    test(`${copy} matches ${source}`, () => {
+      assert.ok(fs.existsSync(path.join(ROOT, copy)), `${copy} is missing — run: npm run sync`);
       assert.equal(
         fs.readFileSync(path.join(ROOT, copy), 'utf8'),
         fs.readFileSync(path.join(ROOT, source), 'utf8'),
-        `${copy} is stale — run: cp ${source} ${copy}`
+        `${copy} is stale — run: npm run sync`
       );
     });
   }
