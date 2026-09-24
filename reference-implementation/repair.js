@@ -1,6 +1,7 @@
 import { fetchSafe, FetchRefused } from './fetch-safe.js';
 import { extractText, extractBlocks } from './html.js';
 import { normalizeText, sha256OfText, containsNormalized, textFragment } from './normalize.js';
+import { T } from './patterns.js';
 
 /**
  * Repair evidence whose quoted text has drifted away from its source.
@@ -17,7 +18,7 @@ import { normalizeText, sha256OfText, containsNormalized, textFragment } from '.
  * The tool would rather leave a hole than invent a patch.
  */
 
-export const SIMILARITY_THRESHOLD = 0.6;
+export const SIMILARITY_THRESHOLD = T.repairSimilarityThreshold;
 
 const tokens = s => new Set(normalizeText(s).toLowerCase().match(/\p{Letter}+|\p{Number}+/gu) ?? []);
 

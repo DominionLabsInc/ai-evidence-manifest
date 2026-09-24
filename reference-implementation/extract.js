@@ -1,21 +1,18 @@
 import { fetchSafe } from './fetch-safe.js';
 import { extractText, extractTitle, extractMeta, extractJsonLd, extractBlocks, looksClientRendered } from './html.js';
 import { sha256OfText, normalizeText, containsNormalized, textFragment } from './normalize.js';
+import { T, CLAIM_PATTERNS, GATES, SENTENCE, ATOMIC_TYPES as SHARED_ATOMIC, SCHEMA_TYPE_MAP as SHARED_TYPES } from './patterns.js';
 
 export const EXTRACT_DEFAULTS = {
   maxPages: 20,
-  maxCandidatesPerPage: 8,
-  // Which claims to keep. 'summaries' emits only claims whose text the
-  // publisher wrote as a summary (schema.org or meta description), with the
-  // matching quotes as evidence beneath. That is the point of the format: an
-  // agent reads a short summary and descends into evidence only when it needs
-  // to. 'all' additionally emits section leads and uncovered sentences, which
-  // roughly quadruples the file for material a publisher mostly would not
-  // choose to publish.
-  claims: 'summaries',
-  maxPerType: 6,             // stops one boilerplate-heavy page dominating the manifest
-  minSentenceChars: 40,
-  maxSentenceChars: 500
+  maxCandidatesPerPage: T.maxCandidatesPerPage,
+  maxPerType: T.maxPerType,
+  minSentenceChars: T.minSentenceChars,
+  maxSentenceChars: T.maxSentenceChars,
+  // 'summaries' keeps only claims whose text the publisher wrote as a summary,
+  // with matching quotes as evidence. 'all' also emits section leads and
+  // uncovered sentences.
+  claims: 'summaries'
 };
 
 /**
@@ -31,13 +28,7 @@ function assertPresent(pageText, candidateText) {
 // ---------------------------------------------------------------- tier 1 ---
 // Entities the publisher has already declared in machine-readable form.
 
-const SCHEMA_TYPE_MAP = {
-  Organization: 'organization', Corporation: 'organization', LocalBusiness: 'organization',
-  Product: 'product', SoftwareApplication: 'product', Service: 'service',
-  Person: 'person', Place: 'location', PostalAddress: 'location',
-  ScholarlyArticle: 'research', Article: 'documentation', TechArticle: 'documentation',
-  Offer: 'pricing', Course: 'service', Dataset: 'documentation'
-};
+const SCHEMA_TYPE_MAP = SHARED_TYPES;
 
 function tier1(pageText, jsonld) {
   const out = [];
@@ -69,50 +60,17 @@ function tier1(pageText, jsonld) {
 // Deterministic sentence patterns. Ordered: the first match wins, so a sentence
 // is classified once rather than appearing under several types.
 
-const ACTION_VERBS = String.raw`build|builds|building|built|develop|develops|developing|developed|`
-  + String.raw`provide|provides|providing|offer|offers|offering|deliver|delivers|delivering|`
-  + String.raw`operate|operates|operating|enable|enables|enabling|support|supports|supporting|`
-  + String.raw`run|runs|running|create|creates|creating|design|designs|designing|`
-  + String.raw`publish|publishes|publishing|maintain|maintains|maintaining|`
-  + String.raw`pair|pairs|pairing|focus|focuses|focusing|specialis|specializ`;
+const PATTERNS = CLAIM_PATTERNS;
 
-const ENTITY_NOUNS = String.raw`company|platform|system|tool|service|library|framework|product|`
-  + String.raw`organi[sz]ation|lab|laboratory|institute|agency|studio|firm|architecture|substrate`;
-
-// Ordered: first match wins, so each sentence is classified once rather than
-// appearing under several types.
-const PATTERNS = [
-  ['certification',   /\b(ISO\s?\d{4,5}|SOC\s?2|HIPAA|GDPR|FedRAMP|CMMC|PCI[- ]DSS|certified|accredited|audited|compliant with)\b/i],
-  ['statistic',       /\b\d[\d,.]*\s?(%|percent|million|billion|thousand|users|customers|requests|ms|seconds|hours)\b/i],
-  ['pricing',         /(\$|\u20ac|\u00a3)\s?\d|\bper\s+(month|year|seat|user|request|token)\b|\bfree tier\b/i],
-  ['availability',    /\b(available in|supported regions|uptime|SLA|service level|99\.\d+%)\b/i],
-  ['credential',      /\b(patent(ed)?|trademark|licen[cs]ed|registered in)\b/i],
-  ['research',        /\b(we (show|measure|demonstrate|evaluate|find)|our (paper|study|research|experiments?)|peer[- ]reviewed|preprint)\b/i],
-  ['policy',          /\b(we (do not|never) (sell|share|store)|data (retention|residency)|privacy policy|terms of service)\b/i],
-  ['contact',         /\b[\w.+-]+@[\w-]+\.[\w.]{2,}\b|\bcontact us\b/i],
-  // "X is a/the <entity noun>" — the most common way an organisation or
-  // product states what it is.
-  ['organization',    new RegExp(String.raw`\b(is|are)\s+(an?|the)\s+[^.]{0,60}\b(company|organi[sz]ation|lab|laboratory|institute|agency|firm)\b`, 'i')],
-  ['product',         new RegExp(String.raw`\b(is|are)\s+(an?|the)\s+[^.]{0,60}\b(platform|system|tool|service|library|framework|product|architecture|substrate)\b`, 'i')],
-  // "we/our X ... <action verb>"
-  ['capability',      new RegExp(String.raw`\b(we|our\s+\w+|the\s+(${ENTITY_NOUNS}))\b[^.]{0,90}\b(${ACTION_VERBS})`, 'i')],
-  ['technical_claim', new RegExp(String.raw`\b(reasons?|verif(y|ies|ied)|infers?|derives?|validates?|proves?|guarantees?|ensures?)\b[^.]{0,90}\b(without|over|from|against|before)\b`, 'i')],
-  ['business_fact',   new RegExp(String.raw`\b(founded|headquartered|based in|established|incorporated|team of|since\s+\d{4})\b`, 'i')]
-];
-
-// Abbreviations whose full stop does not end a sentence. Without this,
-// "Dominion Labs Inc. collects ..." is cut after "Inc." and a truncated
-// fragment is published as evidence.
-const ABBREV = /\b(?:Inc|Ltd|LLC|Co|Corp|plc|GmbH|Pty|No|Nos|vs|etc|e\.g|i\.e|cf|al|Fig|Dr|Mr|Mrs|Ms|Prof|St|Jr|Sr|Mt|Ave|approx|est|incl|min|max|sec|ms)\.$/i;
 
 function splitSentences(text) {
-  const parts = text.split(/(?<=[.!?])\s+(?=[A-Z0-9"“'(])/u);
+  const parts = text.split(SENTENCE.splitAfter);
   const out = [];
   for (const part of parts) {
     const prev = out[out.length - 1];
     // Re-join after an abbreviation, or after a single capital letter (an
     // initial, as in "Stefan R. Ragland").
-    if (prev && (ABBREV.test(prev) || /\b[A-Z]\.$/.test(prev))) out[out.length - 1] = `${prev} ${part}`;
+    if (prev && (SENTENCE.abbreviations.test(prev) || SENTENCE.initial.test(prev))) out[out.length - 1] = `${prev} ${part}`;
     else out.push(part);
   }
   return out.map(s => s.trim()).filter(Boolean);
@@ -196,12 +154,12 @@ function publisherSummaries(html, meta, pageText) {
     for (const field of ['description', 'abstract', 'disambiguatingDescription']) {
       const v = typeof node[field] === 'string' ? node[field].trim() : null;
       const rawType = Array.isArray(node['@type']) ? node['@type'][0] : node['@type'];
-      if (v && v.length >= 25) out.push({ text: v, source: 'schema.org', type: SCHEMA_TYPE_MAP[rawType] ?? null });
+      if (v && v.length >= T.minSummaryChars) out.push({ text: v, source: 'schema.org', type: SCHEMA_TYPE_MAP[rawType] ?? null });
     }
   }
   for (const key of ['description', 'og:description']) {
     const v = meta[key];
-    if (v && v.length >= 25) out.push({ text: v, source: 'meta', type: null });
+    if (v && v.length >= T.minSummaryChars) out.push({ text: v, source: 'meta', type: null });
   }
 
   // Section lead sentences. A heading names a topic but rarely asserts
@@ -213,7 +171,7 @@ function publisherSummaries(html, meta, pageText) {
   // each other. Keeping both produces two claims saying the same thing.
   const deduped = [];
   for (const s of out) {
-    const dupe = deduped.find(d => overlap(d.text, s.text) > 0.72);
+    const dupe = deduped.find(d => overlap(d.text, s.text) > T.summaryDedupeThreshold);
     if (!dupe) deduped.push(s);
     else if (s.text.length > dupe.text.length) deduped[deduped.indexOf(dupe)] = s;
   }
@@ -249,8 +207,8 @@ function overlap(a, b) {
   return shared / Math.min(A.size, B.size);
 }
 
-const SUPPORT_THRESHOLD = 0.18;
-const MAX_EVIDENCE_PER_CLAIM = 6;
+const SUPPORT_THRESHOLD = T.supportThreshold;
+const MAX_EVIDENCE_PER_CLAIM = T.maxEvidencePerClaim;
 
 function toEvidence(c, { url, title, meta }) {
   const locator = {};
@@ -271,7 +229,7 @@ function toEvidence(c, { url, title, meta }) {
   };
 }
 
-const ATOMIC_TYPES = new Set(['policy', 'certification', 'credential', 'pricing', 'statistic', 'availability', 'contact']);
+const ATOMIC_TYPES = SHARED_ATOMIC;
 
 /**
  * Sentences that are grammatically fine and completely useless as claims.
@@ -283,31 +241,19 @@ const ATOMIC_TYPES = new Set(['policy', 'certification', 'credential', 'pricing'
  *     agree…"), which appear on millions of sites and say nothing specific
  *   - capitalised liability blocks, which are disclaimers, not claims
  */
-const SELF_REFERENTIAL = /^(?:this|these|the)\s+(?:privacy policy|terms|terms of service|agreement|document|section|table|figure|paper|study|article|page)\b|^(?:table|figure|section|appendix)\s+\d|^the (?:document|section|chapter) that follows/i;
-const CONSENT_FORMULA = /^(?:by (?:using|accessing|continuing|clicking)|if you (?:do not )?(?:agree|accept)|you (?:agree|acknowledge|represent|warrant)\b)|\bcontinued use of the services\b|\bconstitutes acceptance\b/i;
 
-// A sentence that defers its content to somewhere else carries none of its own.
-const DANGLING_REFERENCE = /\b(?:described|listed|set out|set forth|specified|outlined)\s+(?:below|above|herein|in this (?:policy|section|agreement))\b|\bas follows\b|\bsee (?:section|table|figure)\b/i;
-const GOVERNED_BY = /\b(?:is|are) also governed by\b|\bentire agreement\b|\bwe may update this\b|\bdoes not apply to those third parties\b/i;
 
-// Cloudflare and similar services replace addresses with a placeholder in the
-// HTML and restore them with JavaScript. The quote is verbatim but the value is
-// missing, which makes it worthless as evidence.
-const OBFUSCATED = /\[email\s*protected\]|\[at\]|\(at\)|&#\d+;@/i;
 
 function isBoilerplate(text) {
-  if (OBFUSCATED.test(text)) return true;
-  if (SELF_REFERENTIAL.test(text) || CONSENT_FORMULA.test(text) || GOVERNED_BY.test(text)) return true;
-  if (DANGLING_REFERENCE.test(text)) return true;
+  if (GATES.obfuscatedValue.test(text)) return true;
+  if (GATES.selfReferential.test(text) || GATES.consentFormula.test(text) || GATES.governedBy.test(text)) return true;
+  if (GATES.danglingReference.test(text)) return true;
   const letters = text.replace(/[^\p{Letter}]/gu, '');
-  if (letters.length > 30 && (letters.replace(/[^\p{Uppercase_Letter}]/gu, '').length / letters.length) > 0.6) return true;
+  if (letters.length > T.minUppercaseSampleChars &&
+      (letters.replace(/[^\p{Uppercase_Letter}]/gu, '').length / letters.length) > T.uppercaseRatioLimit) return true;
   return false;
 }
 
-// A certification or credential claim needs a named standard or instrument.
-// Without this, any sentence containing "audited" or "licensed" as an ordinary
-// verb is published as though the company held a certification.
-const NAMED_CREDENTIAL = /\b(ISO\s?\d{4,5}|SOC\s?2|HIPAA|GDPR|CCPA|FedRAMP|CMMC|PCI[- ]DSS|Type\s?II|patent(?:\s+no\.?|\s+number|ed\b)|trademark|registered in|licen[cs]ed,? not sold|certificate|accreditation)\b/i;
 
 function clusterUnderSummaries(verified, summaries, ctx) {
   const used = new Set();
@@ -345,8 +291,8 @@ function clusterUnderSummaries(verified, summaries, ctx) {
     if (used.has(i)) continue;
     if (summariesOnly && !ATOMIC_TYPES.has(c.type)) continue;
     if (summariesOnly && isBoilerplate(c.text)) continue;
-    if (summariesOnly && (c.type === 'certification' || c.type === 'credential') && !NAMED_CREDENTIAL.test(c.text)) continue;
-    if (summariesOnly && c.type === 'pricing' && !/(\$|\u20ac|\u00a3)\s?\d|\bper\s+(month|year|seat|user)\b|\bfree tier\b/i.test(c.text)) continue;
+    if (summariesOnly && (c.type === 'certification' || c.type === 'credential') && !GATES.namedCredential.test(c.text)) continue;
+    if (summariesOnly && c.type === 'pricing' && !GATES.concretePricing.test(c.text)) continue;
     if (claims.length >= ctx.o.maxCandidatesPerPage) break;
     claims.push({
       type: c.type,
@@ -376,7 +322,7 @@ function dropSubsumed(claims) {
       const kk = key(kept);
       let shared = 0;
       for (const t of ck) if (kk.has(t)) shared++;
-      return shared / ck.size >= 0.5;     // half its support already stands under another claim
+      return shared / ck.size >= T.subsumedEvidenceRatio;     // half its support already stands under another claim
     });
     if (!covered) out.push(c);
   }

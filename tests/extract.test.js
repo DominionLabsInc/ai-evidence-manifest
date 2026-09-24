@@ -163,3 +163,14 @@ describe('quality gates', () => {
     });
   }
 });
+
+describe('sentence-boundary regression guard', () => {
+  const only = html => candidatesFromHtml(html, URL_, { claims: 'all' }).candidates.flatMap(c => c.evidence).map(e => e.text);
+  test('a possessive does not join two sentences', () => {
+    // The initial-detection pattern must stay case-sensitive. Case-insensitively
+    // it matches the "s." in "the substrate's." and swallows the next sentence.
+    const t = only("<body><p>Naming is not the faculty’s to do; it is the substrate’s. The reason this matters is that meaning has to be learned somewhere.</p></body>");
+    assert.ok(t.some(x => x.trim().endsWith('the substrate’s.')), JSON.stringify(t));
+    assert.ok(!t.some(x => x.includes('substrate’s. The reason')), JSON.stringify(t));
+  });
+});

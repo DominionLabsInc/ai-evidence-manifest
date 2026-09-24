@@ -1,4 +1,5 @@
 import { parse } from 'parse5';
+import { HTML_SETS } from './patterns.js';
 
 /**
  * HTML reading, built on parse5 — the same spec-compliant parser jsdom uses.
@@ -14,9 +15,9 @@ import { parse } from 'parse5';
  * subtrees are skipped entirely before any text is returned.
  */
 
-const SKIP = new Set(['script', 'style', 'noscript', 'template', 'svg', 'head', 'iframe', 'object', 'canvas']);
-const BLOCK = new Set(['h1', 'h2', 'h3', 'h4', 'p', 'li', 'blockquote', 'dd', 'figcaption', 'td', 'th']);
-const SECTIONING = new Set(['section', 'article', 'main', 'div', 'header', 'aside', 'nav', 'footer']);
+const SKIP = HTML_SETS.skipElements;
+const BLOCK = HTML_SETS.blockElements;
+const SECTIONING = HTML_SETS.sectioningElements;
 
 const isElement = n => typeof n.tagName === 'string';
 const attr = (node, name) => node.attrs?.find(a => a.name === name)?.value ?? null;
@@ -37,10 +38,7 @@ function* walk(node, ancestors = []) {
 // Elements that imply a break in the text. Without these, adjacent blocks run
 // together ("sign.unclosed") and a quote can appear to span a boundary it never
 // crossed.
-const SEPARATES = new Set([
-  ...BLOCK, ...SECTIONING, 'br', 'hr', 'tr', 'ul', 'ol', 'dl', 'dt', 'table',
-  'figure', 'address', 'pre', 'form', 'label', 'option', 'h5', 'h6'
-]);
+const SEPARATES = new Set([...BLOCK, ...SECTIONING, ...HTML_SETS.separatingElements]);
 
 /** Concatenated text of a subtree, skipping non-content elements. */
 function textOf(node) {
