@@ -1,0 +1,32 @@
+{
+  "manifest": {
+    "version": "1.0.0",
+    "site": "https://example.com",
+    "language": "fr"
+  },
+  "claims": [
+    {
+      "id": "capability-multilingue",
+      "type": "capability",
+      "claim": "Nous développons des systèmes d’IA autonomes — 我们开发自主人工智能系统 — نطور أنظمة ذكاء اصطناعي مستقلة.",
+      "evidence": [
+        {
+          "url": "https://example.com/research",
+          "text": "Nous développons des systèmes d’IA autonomes — 我们开发自主人工智能系统 — نطور أنظمة ذكاء اصطناعي مستقلة.",
+          "integrity": {
+            "sha256": "dc4e55fe255c33b29a8fda973518db95ffdaf91dae6ec0a54cb3f34d29027334"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          },
+          "language": "fr"
+        }
+      ],
+      "language": "fr"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "ai-evidence",
+  "version": "0.1.0",
+  "description": "Reference validator and extractor for the AI Evidence Manifest: a static /ai.json file linking website claims to the first-party evidence supporting them.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": { "ai-evidence": "./validator/cli.js" },
+  "exports": { ".": "./reference-implementation/index.js" },
+  "files": ["reference-implementation/", "validator/", "schema/", "SPEC.md"],
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test tests/",
+    "validate:examples": "node validator/cli.js validate examples/ai.json --offline --strict"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  },
+  "keywords": ["ai", "evidence", "provenance", "manifest", "agents", "json-schema"],
+  "repository": { "type": "git", "url": "https://github.com/DominionLabsInc/ai-evidence-manifest.git" }
+}

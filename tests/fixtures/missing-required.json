@@ -1,0 +1,12 @@
+{
+  "manifest": {
+    "version": "1.0.0",
+    "site": "https://example.com"
+  },
+  "claims": [
+    {
+      "id": "x",
+      "type": "capability"
+    }
+  ]
+}

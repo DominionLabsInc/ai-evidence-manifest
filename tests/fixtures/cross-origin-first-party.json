@@ -1,0 +1,29 @@
+{
+  "manifest": {
+    "version": "1.0.0",
+    "site": "https://example.com"
+  },
+  "claims": [
+    {
+      "id": "capability-autonomous-ai",
+      "type": "capability",
+      "claim": "The company develops autonomous AI systems.",
+      "evidence": [
+        {
+          "url": "https://elsewhere.example.net/page",
+          "text": "Our research program develops autonomous AI systems.",
+          "integrity": {
+            "sha256": "793a0672671a6ab1a5d57f4275ce4105e674703532edd2683e7bd2aa7b78cd40"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          }
+        }
+      ]
+    }
+  ]
+}

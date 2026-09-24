@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dominionlabsinc.github.io/ai-evidence-manifest/schema/1.0.0/ai-evidence-manifest.schema.json",
+  "title": "AI Evidence Manifest",
+  "description": "A publisher-declared index linking important claims on a website to the first-party evidence supporting them. The manifest asserts where evidence is located; it does not assert that any claim is true.",
+  "type": "object",
+  "required": ["manifest", "claims"],
+  "additionalProperties": false,
+  "properties": {
+    "manifest": { "$ref": "#/$defs/manifestHeader" },
+    "publisher": { "$ref": "#/$defs/publisher" },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Namespaced, non-normative extension data. Consumers MUST ignore keys they do not understand.",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "manifestHeader": {
+      "type": "object",
+      "required": ["version", "site"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Specification version this manifest conforms to (semantic versioning)."
+        },
+        "site": {
+          "$ref": "#/$defs/httpsUrl",
+          "description": "Origin the manifest describes. All first-party evidence SHOULD be within this origin."
+        },
+        "generated_at": { "$ref": "#/$defs/dateTime" },
+        "generator": { "type": "string", "maxLength": 200 },
+        "language": { "$ref": "#/$defs/language" }
+      }
+    },
+    "publisher": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "same_as": {
+          "type": "array",
+          "maxItems": 50,
+          "items": { "$ref": "#/$defs/httpsUrl" },
+          "description": "Other URLs identifying the same publisher. Informational only; this is not identity verification."
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "required": ["id", "type", "claim", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$",
+          "maxLength": 128,
+          "description": "Stable identifier, unique within the manifest."
+        },
+        "type": { "$ref": "#/$defs/claimType" },
+        "claim": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "scope": { "type": "string", "maxLength": 200 },
+        "importance": { "enum": ["primary", "secondary"] },
+        "language": { "$ref": "#/$defs/language" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["url", "text", "source_type"],
+      "additionalProperties": false,
+      "properties": {
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000,
+          "description": "Exact text as it appears at the referenced location, before normalization."
+        },
+        "title": { "type": "string", "maxLength": 300 },
+        "locator": { "$ref": "#/$defs/locator" },
+        "integrity": { "$ref": "#/$defs/integrity" },
+        "source_type": { "$ref": "#/$defs/sourceType" },
+        "authority": { "$ref": "#/$defs/authority" },
+        "scope": { "type": "string", "maxLength": 200 },
+        "language": { "$ref": "#/$defs/language" },
+        "published_at": { "$ref": "#/$defs/date" },
+        "modified_at": { "$ref": "#/$defs/date" },
+        "verification": { "$ref": "#/$defs/verification" }
+      }
+    },
+    "locator": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How to find the evidence within the source. Prefer fragment or section; selector is advisory and MAY be ignored.",
+      "properties": {
+        "fragment": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "URL fragment, ideally a W3C Text Fragment (#:~:text=...)."
+        },
+        "section": { "type": "string", "maxLength": 200, "description": "Element id of the containing section." },
+        "selector": { "type": "string", "maxLength": 500, "description": "CSS selector. Advisory only; MUST NOT be the sole locator relied upon." }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "Lowercase hex SHA-256 of the normalized evidence text. See SPEC.md 'Text normalization'."
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["method"],
+      "additionalProperties": false,
+      "properties": {
+        "verified": { "type": "boolean" },
+        "verified_at": { "$ref": "#/$defs/date" },
+        "method": { "$ref": "#/$defs/verificationMethod" }
+      }
+    },
+    "claimType": {
+      "enum": [
+        "capability", "product", "service", "organization", "person", "location",
+        "credential", "certification", "technical_claim", "business_fact", "statistic",
+        "policy", "pricing", "availability", "contact", "announcement", "research",
+        "documentation", "other"
+      ]
+    },
+    "sourceType": {
+      "enum": ["first-party", "third-party", "independent", "regulatory", "public-record", "unknown"],
+      "description": "Relationship of the evidence location to the manifest publisher."
+    },
+    "authority": {
+      "enum": ["publisher", "author", "regulator", "certifier", "independent-auditor", "unknown"],
+      "description": "Who stands behind the statement. Distinct from source_type, which describes where it lives."
+    },
+    "verificationMethod": {
+      "enum": ["publisher-confirmed", "automatically-generated", "externally-verified", "manually-reviewed", "unknown"],
+      "description": "publisher-confirmed means a human at the publisher asserted this. It is NOT independent verification."
+    },
+    "httpsUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "maxLength": 2048,
+      "description": "Absolute HTTPS URL. http:// is rejected so consumers are not induced to fetch over plaintext."
+    },
+    "date": { "type": "string", "format": "date" },
+    "dateTime": { "type": "string", "format": "date-time" },
+    "language": { "type": "string", "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$", "maxLength": 35 }
+  }
+}

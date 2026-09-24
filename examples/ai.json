@@ -1,0 +1,228 @@
+{
+  "manifest": {
+    "version": "1.0.0",
+    "site": "https://example.com",
+    "generated_at": "2026-09-24T09:00:00Z",
+    "generator": "ai-evidence/0.1.0",
+    "language": "en"
+  },
+  "publisher": {
+    "name": "Example Corp",
+    "url": "https://example.com",
+    "same_as": [
+      "https://github.com/example-corp",
+      "https://www.linkedin.com/company/example-corp"
+    ]
+  },
+  "claims": [
+    {
+      "id": "org-identity",
+      "type": "organization",
+      "claim": "Example Corp is an independent software company registered in Delaware, United States.",
+      "importance": "primary",
+      "evidence": [
+        {
+          "url": "https://example.com/about",
+          "text": "Example Corp is an independent software company, registered in Delaware and operating since 2019.",
+          "title": "About — Example Corp",
+          "locator": {
+            "section": "company-identity",
+            "fragment": "#:~:text=Example%20Corp%20is%20an%20independent%20software%20company%2C%20registered%20in%20Delaware%20and%20operating%20since%202019."
+          },
+          "published_at": "2024-02-11",
+          "modified_at": "2026-06-02",
+          "integrity": {
+            "sha256": "6c8c98fdb2aab18a07e4fe20fba5dc01c236244286170e00ba8519fbdbb772c0"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          }
+        },
+        {
+          "url": "https://example.com/legal/registration",
+          "text": "Example Corp, Inc. — Delaware File Number 7741820.",
+          "title": "Registration — Example Corp",
+          "locator": {
+            "section": "registration",
+            "fragment": "#:~:text=Example%20Corp%2C%20Inc.%20%E2%80%94%20Delaware%20File%20Number%207741820."
+          },
+          "source_type": "public-record",
+          "authority": "regulator",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "externally-verified"
+          },
+          "integrity": {
+            "sha256": "115e336e4bcd0d46738a5d3df9eec60459a3fe89b506dfa7e35660824aa30274"
+          }
+        }
+      ]
+    },
+    {
+      "id": "capability-document-extraction",
+      "type": "capability",
+      "claim": "Example Corp extracts structured data from scanned documents without sending them to third parties.",
+      "importance": "primary",
+      "evidence": [
+        {
+          "url": "https://example.com/platform",
+          "text": "Our extraction pipeline converts scanned documents into structured records entirely within your own infrastructure.",
+          "title": "Platform — Example Corp",
+          "locator": {
+            "section": "extraction",
+            "fragment": "#:~:text=Our%20extraction%20pipeline%20converts%20scanned%20documents%20into%20structured%20records%20entirely%20within%20your%20own%20infrastructure."
+          },
+          "modified_at": "2026-08-19",
+          "integrity": {
+            "sha256": "661c57624703e25d43730eda29ea1986729bfe7f188d7b0c7c43319f8bb93cff"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "capability-on-premise-deployment",
+      "type": "capability",
+      "claim": "The platform can run fully on-premise with no outbound network access.",
+      "importance": "primary",
+      "evidence": [
+        {
+          "url": "https://example.com/docs/deployment",
+          "text": "Example Platform runs in an air-gapped configuration with no outbound network access required.",
+          "title": "Deployment — Example Corp Docs",
+          "locator": {
+            "section": "air-gapped",
+            "fragment": "#:~:text=Example%20Platform%20runs%20in%20an%20air-gapped%20configuration%20with%20no%20outbound%20network%20access%20required."
+          },
+          "modified_at": "2026-07-30",
+          "integrity": {
+            "sha256": "c847257a8fa068a56b2160ef1150572a29f3d2aaef833ba8d737760341d1e99e"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "product-example-platform",
+      "type": "product",
+      "claim": "Example Platform is the company’s document-processing product.",
+      "evidence": [
+        {
+          "url": "https://example.com/platform",
+          "text": "Example Platform is our document-processing product for regulated industries.",
+          "title": "Platform — Example Corp",
+          "locator": {
+            "section": "overview",
+            "fragment": "#:~:text=Example%20Platform%20is%20our%20document-processing%20product%20for%20regulated%20industries."
+          },
+          "integrity": {
+            "sha256": "cc8bf4f729650c0e15bc0d482bbd3698d5114bdf693898bfda83945df6b85f54"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "service-implementation-support",
+      "type": "service",
+      "claim": "Example Corp provides implementation support during deployment.",
+      "evidence": [
+        {
+          "url": "https://example.com/services",
+          "text": "We provide hands-on implementation support for the first ninety days of any deployment.",
+          "title": "Services — Example Corp",
+          "locator": {
+            "section": "implementation",
+            "fragment": "#:~:text=We%20provide%20hands-on%20implementation%20support%20for%20the%20first%20ninety%20days%20of%20any%20deployment."
+          },
+          "integrity": {
+            "sha256": "471666566fff9f15cc32366ef4b7cdf0286cce8cce73a9461f1be852f0f14195"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          }
+        }
+      ]
+    },
+    {
+      "id": "technical-claim-throughput",
+      "type": "technical_claim",
+      "claim": "The platform processed 1,200 pages per minute on the published benchmark hardware.",
+      "evidence": [
+        {
+          "url": "https://example.com/benchmarks",
+          "text": "On the reference configuration described below, the platform sustained 1,200 pages per minute across a 10,000-page corpus.",
+          "title": "Benchmarks — Example Corp",
+          "locator": {
+            "section": "throughput",
+            "fragment": "#:~:text=On%20the%20reference%20configuration%20described%20below%2C%20the%20platform%20sustained%201%2C200%20pages%20per%20minute%20across%20a%2010%2C000-page%20corpus."
+          },
+          "published_at": "2026-05-04",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "manually-reviewed"
+          },
+          "integrity": {
+            "sha256": "4a9e7b87ba1b12ecc2e684613b936717ea6ac29b363741dd553d73823699afb3"
+          },
+          "source_type": "first-party",
+          "authority": "publisher"
+        }
+      ]
+    },
+    {
+      "id": "certification-soc2",
+      "type": "certification",
+      "claim": "Example Corp holds a SOC 2 Type II report.",
+      "evidence": [
+        {
+          "url": "https://example.com/trust",
+          "text": "Example Corp completed a SOC 2 Type II audit covering security and availability, with the report available under NDA.",
+          "title": "Trust — Example Corp",
+          "locator": {
+            "section": "soc2",
+            "fragment": "#:~:text=Example%20Corp%20completed%20a%20SOC%202%20Type%20II%20audit%20covering%20security%20and%20availability%2C%20with%20the%20report%20available%20under%20NDA."
+          },
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          },
+          "integrity": {
+            "sha256": "23d77078bef62540f3593fa8347f5e12ac6db4a3baa71c97fbe5ff97f6d8d5b9"
+          },
+          "source_type": "first-party",
+          "authority": "publisher"
+        }
+      ]
+    }
+  ]
+}

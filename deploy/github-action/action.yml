@@ -1,0 +1,31 @@
+name: Validate AI Evidence Manifest
+description: Validate an ai.json manifest, and optionally check that its evidence is still present at source.
+
+inputs:
+  manifest:
+    description: Path to the manifest file
+    required: false
+    default: ai.json
+  strict:
+    description: Treat warnings as failures
+    required: false
+    default: 'false'
+  check-evidence:
+    description: Fetch evidence URLs and confirm the quoted text is still present
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - shell: bash
+      run: npm install -g ai-evidence
+    - shell: bash
+      run: |
+        ARGS=""
+        [ "${{ inputs.strict }}" = "true" ] && ARGS="$ARGS --strict"
+        [ "${{ inputs.check-evidence }}" = "true" ] && ARGS="$ARGS --online" || ARGS="$ARGS --offline"
+        ai-evidence validate "${{ inputs.manifest }}" $ARGS

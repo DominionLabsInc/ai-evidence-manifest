@@ -1,0 +1,29 @@
+{
+  "manifest": {
+    "version": "1.0.0",
+    "site": "https://example.com"
+  },
+  "claims": [
+    {
+      "id": "capability-autonomous-ai",
+      "type": "capability",
+      "claim": "<script>alert(\"xss\")</script> and <img src=x onerror=alert(1)>",
+      "evidence": [
+        {
+          "url": "https://example.com/research",
+          "text": "<script>alert(\"xss\")</script> and <img src=x onerror=alert(1)>",
+          "integrity": {
+            "sha256": "31165139a72e79503c990f9d96bde499c69003a4f895cf80f87c091a0c004c9a"
+          },
+          "source_type": "first-party",
+          "authority": "publisher",
+          "verification": {
+            "verified": true,
+            "verified_at": "2026-09-24",
+            "method": "publisher-confirmed"
+          }
+        }
+      ]
+    }
+  ]
+}
