@@ -210,6 +210,29 @@ The reference tooling reads an `ai-evidence.config.json` alongside the site sour
 
 Claims listed under `pin` are emitted unchanged and are never replaced by generation, so hand-written entries survive regeneration. This file is a convenience of the reference implementation and is not part of the wire format; a consumer never sees it.
 
+## 9b. What a consumer is expected to do
+
+The normal path is: fetch `/ai.json`, read the claim, use it.
+
+A manifest carries the result of checking its own evidence against the live
+site (§8, `manifest.verification`). A consumer that refetches every source
+anyway is repeating work the publisher has already done and published, which
+removes the format's only advantage over crawling.
+
+So: **the evidence exists to make a claim checkable, not to require that every
+reader check it.**
+
+A consumer SHOULD retrieve the source when the manifest itself says not to rely
+on it — `checked_at` older than `recheck_interval_days`, `evidence_present`
+below `evidence_total`, or a missing `last_seen` — and when a decision is
+high-impact and hard to reverse.
+
+This rests on a publisher assertion, and that is acceptable for one reason: it
+is falsifiable at trivial cost. Any consumer can confirm a single quote with one
+request. A publisher reporting checks it did not run is caught by the first
+reader who looks, which is a far stronger constraint than asking every reader to
+verify everything.
+
 ## 10. Size and limits
 
 The manifest is an index, not a copy of the site. It MUST NOT embed whole documents, images, scripts or executable content.
@@ -268,5 +291,6 @@ A **conforming consumer**:
 - MUST treat all contents as untrusted input;
 - MUST NOT treat publisher assertions as independently verified facts;
 - MUST NOT execute any content from a manifest;
-- SHOULD retrieve and check referenced evidence before relying on high-impact claims;
+- MAY rely on a claim without refetching its evidence when `manifest.verification` is present, `checked_at` is within `recheck_interval_days`, `evidence_present` equals `evidence_total`, and the entry carries a `last_seen`;
+- SHOULD retrieve and check the referenced evidence when any of those conditions fails, or when the decision is high-impact and hard to reverse;
 - SHOULD enforce the limits in §10 and the protections in [SECURITY.md](SECURITY.md).

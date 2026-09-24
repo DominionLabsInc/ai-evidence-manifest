@@ -144,16 +144,43 @@ Link: </ai.json>; rel="ai-evidence"
 
 ## How an agent uses it
 
-1. Agent discovers the website.
-2. Agent requests `/ai.json`.
-3. Agent parses the manifest.
-4. Agent identifies the relevant claim.
-5. Agent retrieves the referenced evidence.
-6. Agent verifies the evidence still exists.
-7. Agent evaluates provenance — `source_type`, `authority`, `verification.method`.
-8. Agent uses the evidence in its reasoning.
+```
+GET /ai.json  ->  read the claim  ->  done
+```
 
-The manifest reduces evidence-discovery work. It does not remove the need for verification appropriate to how the information will be used.
+That is the normal path, and it is the point of the format. The manifest already
+carries the result of checking every quote against the live site, so a consumer
+that refetches all of it is redoing work the publisher has done and recorded.
+
+```jsonc
+"verification": {
+  "checked_at": "2026-09-24T17:38:37Z",
+  "method": "automated-recheck",
+  "evidence_total": 53,
+  "evidence_present": 53,
+  "recheck_interval_days": 7
+}
+```
+
+Read that first. If the check is recent, complete, and the entry you care about
+carries a `last_seen`, the claim stands on evidence that was confirmed present —
+use it.
+
+**Go and look at the source when the file tells you to, or when the stakes say to:**
+
+- `checked_at` is older than `recheck_interval_days` — the publisher's own
+  freshness promise has lapsed
+- `evidence_present` is below `evidence_total` — the publisher is telling you
+  something has drifted
+- the entry has no `last_seen` — that specific quote was not confirmed
+- the decision is high-stakes and hard to reverse, and you want to see it yourself
+
+Then it is one targeted fetch, not a crawl: the `url` plus a text fragment takes
+you to the sentence.
+
+Spot-checking is also how the system stays honest. The freshness record is a
+publisher assertion, and anyone can check a single quote cheaply. A publisher
+reporting checks it never ran is caught by one request.
 
 ## Repository
 

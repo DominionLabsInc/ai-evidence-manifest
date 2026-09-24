@@ -13,33 +13,69 @@ node validator/cli.js validate examples/ai.json --strict
 
 ## How an agent consumes this
 
-Suppose an agent has been asked *"can Example Corp process documents without sending them off-premise?"*
+Suppose an agent is asked *"can Example Corp process documents without sending them off-premise?"*
 
-**1 — Fetch the manifest.** One request, ~4 KB, instead of crawling the site.
+**1 — Fetch the manifest.** One request.
 
 ```
 GET https://example.com/ai.json
 ```
 
-**2 — Find relevant claims.** Scanning `claim` strings and `type` values, two are relevant:
+**2 — Check the freshness line.** Before anything else:
 
-- `capability-document-extraction` — *"Example Corp extracts structured data from scanned documents without sending them to third parties."*
-- `capability-on-premise-deployment` — *"The platform can run fully on-premise with no outbound network access."*
+```jsonc
+"verification": { "checked_at": "…", "method": "automated-recheck",
+                  "evidence_total": 8, "evidence_present": 8,
+                  "recheck_interval_days": 7 }
+```
 
-**3 — Read the provenance before the content.** Both are `source_type: first-party`, `authority: publisher`, `method: publisher-confirmed`. So: the company says this about itself, and a person there stands behind it. That is a reasonable starting point, and it is not independent verification. Compare with `org-identity`, whose second evidence record is `public-record` / `regulator` — a materially stronger signal, because a third party with no incentive to flatter produced it.
+Recent, complete, re-checked weekly. Every quote in this file was confirmed
+present on the live site.
 
-**4 — Retrieve the evidence.** The claim is load-bearing for the question, so fetch it rather than trusting the manifest:
+**3 — Read the claim and answer.**
+
+> *"Example Corp states its platform runs air-gapped with no outbound network
+> access required, and that documents are converted entirely within your own
+> infrastructure. Source: its deployment documentation and platform page,
+> confirmed present on 24 September 2026."*
+
+That is the whole interaction. Two requests' worth of work replaced by one, and
+the agent did not have to discover, crawl or interpret the site.
+
+### When to go and look anyway
+
+Not as a ritual — when the file or the situation says to:
+
+| Signal | What it means |
+|---|---|
+| `checked_at` older than `recheck_interval_days` | the publisher's freshness promise has lapsed |
+| `evidence_present` < `evidence_total` | the publisher is telling you something drifted |
+| entry has no `last_seen` | that specific quote was not confirmed |
+| high-stakes, hard to reverse | you want to see it with your own eyes |
+
+Then it is one targeted fetch, not a crawl:
 
 ```
 GET https://example.com/docs/deployment#:~:text=Example%20Platform%20runs%20in%20an%20air-gapped%20configuration
 ```
 
-The text fragment takes a browser straight to the sentence; a non-browser agent searches the page for the `text` value.
+The text fragment lands on the sentence. Extract the page text, normalise it
+(NFC, collapse whitespace), confirm the quoted `text` is present, recompute the
+SHA-256 against `integrity.sha256`.
 
-**5 — Confirm it is still there.** Extract the page's visible text, normalize it (NFC, collapse whitespace), and check the quoted `text` is present. Recompute SHA-256 and compare against `integrity.sha256`. If the quote has gone, the page has changed since the manifest was written — the claim is unsupported *as recorded*, which is exactly what the mechanism is for.
+### Why trusting the record is reasonable
 
-**6 — Answer with attribution.** *"Example Corp states its platform runs air-gapped with no outbound network access required, on its deployment documentation page, last verified 2026-09-24. This is the company's own statement, not an independent assessment."*
+It is a publisher assertion, and it is falsifiable for the price of one request.
+Any reader can check a single quote. A publisher that reports checks it never
+ran is caught the first time anyone looks — and the cost of being caught is that
+agents stop believing anything on that domain. That incentive does more work
+than asking every reader to verify everything, which is what made the manifest
+pointless in the first place.
 
-What the agent saved: discovery. Instead of crawling the site to find where deployment is described, it made one request and went straight to the sentence. On a 13-page site that is 25 KB against 499 KB.
+### Weighing provenance
 
-What it still did: confirmed the quote, because the answer was load-bearing. For a lower-stakes question it could have relied on `manifest.verification` — the publisher's record of when every quote was last confirmed — and spot-checked instead. See [SPEC.md §8a](../SPEC.md) for when each is appropriate.
+Not all entries are equal, and the manifest says so. `org-identity` carries two
+records: the company's own about page (`first-party` / `publisher`) and a
+registration filing (`public-record` / `regulator`). The second is materially
+stronger — a third party with no incentive to flatter produced it. An agent
+should weight accordingly.

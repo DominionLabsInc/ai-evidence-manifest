@@ -21,7 +21,7 @@ A conforming consumer MUST NOT treat a manifest as any of the following:
 - **An identity mechanism.** `publisher.same_as` is informational. Anyone can list any URL.
 - **Independent verification.** `verification.method: publisher-confirmed` means the publisher said so, and nothing more.
 
-Consumers MUST NOT treat publisher assertions as independently verified facts, and SHOULD retrieve the referenced source before relying on a high-impact claim.
+Consumers MUST NOT treat publisher assertions as independently verified facts. That does not mean refetching every source: a manifest records the result of checking its own evidence (§8), and a consumer that repeats all of it gains nothing over crawling. Retrieve the source when the freshness record says to — stale, incomplete, or no `last_seen` on the entry — and when a decision is high-impact and hard to reverse. Spot-checking a single quote is cheap and is what keeps the publisher's record honest.
 
 ## Obligations for consumers
 
@@ -47,11 +47,11 @@ The reference implementation does all of the above in [`reference-implementation
 
 ### Trust signals, in order of weight
 
-1. Did you fetch the evidence yourself and find the quoted text present? — strongest.
-2. Does `integrity.sha256` match the normalized text you retrieved?
-3. Is `source_type` `first-party` and same-origin with `manifest.site`?
-4. What is `authority`, and does it match the nature of the claim?
-5. What is `verification.method`, and how old is `verified_at`?
+1. Did you fetch the evidence yourself and find the quoted text present? — strongest, and rarely necessary.
+2. Is `manifest.verification` recent, with `evidence_present` equal to `evidence_total`, and does this entry carry a `last_seen`? — the normal basis for relying on a claim.
+3. Does `integrity.sha256` match the normalized text, if you retrieved it?
+4. Is `source_type` `first-party` and same-origin with `manifest.site`?
+5. What is `authority`, and does it match the nature of the claim?
 
 A manifest entry with none of the above verified is a publisher assertion with a URL attached. Weight it accordingly.
 
