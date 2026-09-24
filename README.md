@@ -116,7 +116,7 @@ ai-evidence check ai.json              # confirm every quote is still live
 
 > Not on npm yet, so `npm install -g ai-evidence` will not work. Use the clone above.
 
-Everything found automatically is marked `automatically-generated`. Review it, delete what is not important, and promote what is — a manifest that lists everything is barely better than the crawl it replaces.
+Every quote is read out of the live page and confirmed present, so the evidence is verified before it reaches the file. What a person adds is judgement: which claims matter, and whether the types are right. Delete the noise and the manifest gets smaller and more useful — importance is not a property a machine can derive.
 
 Claims you write by hand go in `pin` in the config. They are emitted first and never overwritten by regeneration.
 

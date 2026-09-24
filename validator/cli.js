@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
-import { validateManifest, parseManifest, LIMITS } from '../reference-implementation/validate.js';
+import { validateManifest, parseManifest, stampVerification, LIMITS } from '../reference-implementation/validate.js';
 import { extractFromSite, extractFromPage, toManifest } from '../reference-implementation/extract.js';
 import { fetchSafe, FetchRefused, normalizeInputUrl } from '../reference-implementation/fetch-safe.js';
 import { loadConfig, writeConfig, initConfig, generate, CONFIG_FILENAME } from '../reference-implementation/config.js';
+import { repairManifest, SIMILARITY_THRESHOLD } from '../reference-implementation/repair.js';
 
 const C = process.stdout.isTTY
   ? { red: s => `\x1b[31m${s}\x1b[0m`, yellow: s => `\x1b[33m${s}\x1b[0m`, green: s => `\x1b[32m${s}\x1b[0m`, dim: s => `\x1b[2m${s}\x1b[0m`, bold: s => `\x1b[1m${s}\x1b[0m` }
@@ -16,7 +17,8 @@ Usage:
   ai-evidence init <url>            Create ai-evidence.config.json for a site
   ai-evidence generate              Read the config, find evidence, write ai.json
   ai-evidence validate <file|url>   Validate a manifest
-  ai-evidence check <file|url>      Re-check that evidence is still present at source
+  ai-evidence check <file> --update Re-check evidence and record the result in the file
+  ai-evidence repair <file>         Re-check, relocate drifted quotes, rewrite the file
   ai-evidence extract <url>         One-shot generate without a config file
 
 Typical use:
@@ -28,6 +30,17 @@ Validate options:
   --online         Fetch evidence URLs (default when validating a URL)
   --strict         Treat warnings as failures
   --json           Machine-readable output
+
+Check options:
+  --update         Write the freshness result back into the manifest
+  --interval <n>   Days between intended re-checks, recorded in the manifest
+
+Repair options:
+  --prune          Remove evidence that could not be confirmed, and any claim
+                   left with none
+  --threshold <n>  Word-overlap required to accept a relocated quote
+                   (default 0.6, 0-1). Below it, the entry is reported lost.
+  --dry-run        Report what would change without writing
 
 Generate options:
   --config <file>  Config to read (default ai-evidence.config.json)
@@ -48,7 +61,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a.startsWith('--')) {
       const key = a.slice(2);
-      if (['out', 'max-pages', 'per-type', 'config'].includes(key)) out.flags[key] = argv[++i];
+      if (['out', 'max-pages', 'per-type', 'config', 'interval', 'threshold'].includes(key)) out.flags[key] = argv[++i];
       else out.flags[key] = true;
     } else out._.push(a);
   }
@@ -183,11 +196,19 @@ async function cmdGenerate(args) {
     return 1;
   }
 
+  // Every quote was read out of the live page moments ago, so presence is true
+  // by construction. Recording that costs nothing and saves every consumer a
+  // refetch they would otherwise have to make blind.
+  stampVerification(res.manifest, { stats: { evidence: countEvidence(res.manifest), textPresent: countEvidence(res.manifest) }, seen: allPresent(res.manifest) },
+    { method: 'generated-from-source', recheckIntervalDays: cfg.recheckIntervalDays ?? 7 });
+
   const json = JSON.stringify(res.manifest, null, 2) + '\n';
   fs.writeFileSync(out, json);
   process.stderr.write(`\n  wrote ${C.bold(out)} — ${res.manifest.claims.length} claims, ${(Buffer.byteLength(json) / 1024).toFixed(1)} KiB\n`);
   if (res.pinned) process.stderr.write(C.dim(`  ${res.pinned} pinned claim(s) kept from the config\n`));
-  process.stderr.write(C.dim(`  found claims are marked automatically-generated; review before relying on them\n`));
+  const v = res.manifest.manifest.verification;
+  process.stderr.write(C.dim(`  ${v.evidence_present}/${v.evidence_total} quotes read from the live pages and confirmed present\n`));
+  process.stderr.write(C.dim(`  what a human adds: which claims matter, and whether the types are right\n`));
   process.stderr.write(C.dim(`  serve it at ${new URL('/ai.json', cfg.site)}\n\n`));
   for (const e of res.errors) process.stderr.write(C.yellow(`  skipped ${e.url}: ${e.error}\n`));
   if (res.clientRendered.length) {
@@ -198,13 +219,95 @@ async function cmdGenerate(args) {
   return 0;
 }
 
+function countEvidence(m) { return m.claims.reduce((n, c) => n + c.evidence.length, 0); }
+function allPresent(m) {
+  const out = [];
+  m.claims.forEach((c, ci) => c.evidence.forEach((_, ei) => out.push({ ci, ei, present: true })));
+  return out;
+}
+
+async function cmdRepair(args) {
+  const target = args._[1];
+  if (!target || isUrl(target)) {
+    process.stderr.write(C.red('error: repair needs a local manifest file to rewrite\n'));
+    return 2;
+  }
+  let raw, source;
+  try { ({ raw, source } = await readManifest(target)); }
+  catch (e) { process.stderr.write(C.red(`error: ${e.message}\n`)); return 2; }
+  let parsed;
+  try { parsed = parseManifest(raw); }
+  catch (e) { process.stderr.write(C.red(`error: ${e.message}\n`)); return 1; }
+
+  process.stdout.write(`\n${C.bold(source)}\n\n`);
+  const res = await repairManifest(parsed.manifest, {
+    threshold: args.flags.threshold ? Number(args.flags.threshold) : undefined,
+    prune: !!args.flags.prune,
+    onEvent: e => {
+      if (e.kind === 'relocated') {
+        process.stdout.write(`  ${C.yellow('relocated')} ${e.where} ${C.dim(`(overlap ${e.score})`)}\n`);
+        process.stdout.write(C.dim(`     was: ${e.before.slice(0, 84)}\n     now: ${e.after.slice(0, 84)}\n`));
+      } else if (e.kind === 'lost') {
+        process.stdout.write(`  ${C.red('lost')}      ${e.where} ${C.dim('no sufficiently similar text on the page')}\n`);
+        process.stdout.write(C.dim(`     was: ${e.text.slice(0, 84)}\n`));
+      } else if (e.kind === 'unreachable') {
+        process.stdout.write(`  ${C.red('unreachable')} ${e.where} ${C.dim(e.reason)}\n`);
+      } else if (e.kind === 'claims-dropped') {
+        process.stdout.write(`  ${C.red('dropped')}   ${e.count} claim(s) left with no evidence\n`);
+      }
+    }
+  });
+
+  const c = res.counts;
+  process.stdout.write(`\n  ${c.present ?? 0} present · ${c.relocated ?? 0} relocated · ${c.lost ?? 0} lost · ${c.unreachable ?? 0} unreachable\n`);
+
+  if (args.flags['dry-run']) {
+    process.stdout.write(C.dim('  --dry-run: nothing written\n\n'));
+    return (c.lost || c.unreachable) ? 1 : 0;
+  }
+
+  const after = await validateManifest(res.manifest, { offline: false });
+  stampVerification(res.manifest, after, { method: 'automated-recheck' });
+  fs.writeFileSync(path.resolve(target), JSON.stringify(res.manifest, null, 2) + '\n');
+  const v = res.manifest.manifest.verification;
+  process.stdout.write(`  wrote ${C.bold(target)} — ${v.evidence_present}/${v.evidence_total} confirmed present\n`);
+  if (c.lost && !args.flags.prune) process.stdout.write(C.dim(`  ${c.lost} unconfirmed entr(ies) kept without last_seen; use --prune to remove them\n`));
+  process.stdout.write('\n');
+  return after.errors.length ? 1 : 0;
+}
+
 async function cmdCheck(args) {
-  return cmdValidate({ ...args, flags: { ...args.flags, online: true, offline: false } });
+  const target = args._[1];
+  if (!args.flags.update) return cmdValidate({ ...args, flags: { ...args.flags, online: true, offline: false } });
+
+  if (!target || isUrl(target)) {
+    process.stderr.write(C.red('error: --update needs a local file to write back to\n'));
+    return 2;
+  }
+  let raw, source;
+  try { ({ raw, source } = await readManifest(target)); }
+  catch (e) { process.stderr.write(C.red(`error: ${e.message}\n`)); return 2; }
+
+  let parsed;
+  try { parsed = parseManifest(raw); }
+  catch (e) { process.stderr.write(C.red(`error: ${e.message}\n`)); return 1; }
+
+  const result = await validateManifest(parsed.manifest, { offline: false, strict: !!args.flags.strict, rawBytes: parsed.bytes });
+  stampVerification(parsed.manifest, result, {
+    method: 'automated-recheck',
+    recheckIntervalDays: args.flags.interval ? Number(args.flags.interval) : undefined
+  });
+  fs.writeFileSync(path.resolve(target), JSON.stringify(parsed.manifest, null, 2) + '\n');
+
+  report(result, source, !!args.flags.json);
+  const v = parsed.manifest.manifest.verification;
+  process.stdout.write(C.dim(`  recorded in ${target}: ${v.evidence_present}/${v.evidence_total} present at ${v.checked_at}\n\n`));
+  return result.valid ? 0 : 1;
 }
 
 const args = parseArgs(process.argv.slice(2));
 const cmd = args._[0];
 if (!cmd || args.flags.help || cmd === 'help') { process.stdout.write(USAGE); process.exit(cmd ? 0 : 2); }
-const handlers = { init: cmdInit, generate: cmdGenerate, validate: cmdValidate, extract: cmdExtract, check: cmdCheck };
+const handlers = { init: cmdInit, generate: cmdGenerate, validate: cmdValidate, extract: cmdExtract, check: cmdCheck, repair: cmdRepair };
 if (!handlers[cmd]) { process.stderr.write(C.red(`unknown command: ${cmd}\n\n`) + USAGE); process.exit(2); }
 process.exit(await handlers[cmd](args));

@@ -4,7 +4,15 @@ import { sha256OfText, normalizeText, containsNormalized, textFragment } from '.
 
 export const EXTRACT_DEFAULTS = {
   maxPages: 20,
-  maxCandidatesPerPage: 8,   // recall matters more than volume; review prunes further
+  maxCandidatesPerPage: 8,
+  // Which claims to keep. 'summaries' emits only claims whose text the
+  // publisher wrote as a summary (schema.org or meta description), with the
+  // matching quotes as evidence beneath. That is the point of the format: an
+  // agent reads a short summary and descends into evidence only when it needs
+  // to. 'all' additionally emits section leads and uncovered sentences, which
+  // roughly quadruples the file for material a publisher mostly would not
+  // choose to publish.
+  claims: 'summaries',
   maxPerType: 6,             // stops one boilerplate-heavy page dominating the manifest
   minSentenceChars: 40,
   maxSentenceChars: 500
@@ -92,11 +100,22 @@ const PATTERNS = [
   ['business_fact',   new RegExp(String.raw`\b(founded|headquartered|based in|established|incorporated|team of|since\s+\d{4})\b`, 'i')]
 ];
 
+// Abbreviations whose full stop does not end a sentence. Without this,
+// "Dominion Labs Inc. collects ..." is cut after "Inc." and a truncated
+// fragment is published as evidence.
+const ABBREV = /\b(?:Inc|Ltd|LLC|Co|Corp|plc|GmbH|Pty|No|Nos|vs|etc|e\.g|i\.e|cf|al|Fig|Dr|Mr|Mrs|Ms|Prof|St|Jr|Sr|Mt|Ave|approx|est|incl|min|max|sec|ms)\.$/i;
+
 function splitSentences(text) {
-  return text
-    .split(/(?<=[.!?])\s+(?=[A-Z0-9"“'(])/u)
-    .map(s => s.trim())
-    .filter(Boolean);
+  const parts = text.split(/(?<=[.!?])\s+(?=[A-Z0-9"“'(])/u);
+  const out = [];
+  for (const part of parts) {
+    const prev = out[out.length - 1];
+    // Re-join after an abbreviation, or after a single capital letter (an
+    // initial, as in "Stefan R. Ragland").
+    if (prev && (ABBREV.test(prev) || /\b[A-Z]\.$/.test(prev))) out[out.length - 1] = `${prev} ${part}`;
+    else out.push(part);
+  }
+  return out.map(s => s.trim()).filter(Boolean);
 }
 
 function tier2(blocks, opts) {
@@ -137,49 +156,192 @@ export function candidatesFromHtml(html, url, opts = {}) {
   const candidates = [...tier1(pageText, extractJsonLd(html)), ...tier2(blocks, o)];
 
   const seenText = new Set();
-  const evidence = [];
+  const verified = [];
   for (const c of candidates) {
     const norm = normalizeText(c.text).toLowerCase();
     if (seenText.has(norm)) continue;                 // same sentence matched twice
-    if (!assertPresent(pageText, c.text)) continue;   // the invariant, enforced again at the boundary
+    if (!assertPresent(pageText, c.text)) continue;   // the invariant, enforced at the boundary
     seenText.add(norm);
-
     const block = c.block ?? blocks.find(b => containsNormalized(b.text, c.text));
-    const locator = {};
-    if (block?.id) locator.section = block.id;
-    else if (block?.section) locator.section = block.section;
-    locator.fragment = textFragment(c.text);
+    verified.push({ ...c, block });
+  }
 
-    evidence.push({
+  const summaries = publisherSummaries(html, meta, pageText);
+  const claims = clusterUnderSummaries(verified, summaries, { url: res_url(url), title, meta, o });
+
+  let note = null;
+  if (claims.length === 0) {
+    const cr = looksClientRendered(html);
+    note = cr.likely
+      ? { code: 'client-rendered', reasons: cr.reasons, textLength: cr.textLength }
+      : { code: 'no-candidates', reasons: [`${cr.textLength} characters of visible text, none matching a claim pattern`], textLength: cr.textLength };
+  }
+  return { url, title, candidates: claims, note };
+}
+
+const res_url = u => u.split('#')[0];
+
+/**
+ * Summary text the publisher already wrote.
+ *
+ * A claim should summarise; evidence should quote. Generating a summary is not
+ * something this tool can do deterministically, but most pages already contain
+ * one — a schema.org description, a meta description, a section heading. Those
+ * are the publisher's own words about what the page says, so they are used as
+ * claims and the matching sentences become the evidence beneath them.
+ */
+function publisherSummaries(html, meta, pageText) {
+  const out = [];
+  for (const node of extractJsonLd(html)) {
+    for (const field of ['description', 'abstract', 'disambiguatingDescription']) {
+      const v = typeof node[field] === 'string' ? node[field].trim() : null;
+      const rawType = Array.isArray(node['@type']) ? node['@type'][0] : node['@type'];
+      if (v && v.length >= 25) out.push({ text: v, source: 'schema.org', type: SCHEMA_TYPE_MAP[rawType] ?? null });
+    }
+  }
+  for (const key of ['description', 'og:description']) {
+    const v = meta[key];
+    if (v && v.length >= 25) out.push({ text: v, source: 'meta', type: null });
+  }
+
+  // Section lead sentences. A heading names a topic but rarely asserts
+  // anything; the sentence that opens the section usually states its point, and
+  // it is the publisher's own summary of what follows.
+  for (const lead of sectionLeads(blocksOf(html))) out.push({ text: lead, source: 'heading', type: null });
+
+  // A schema.org description and a meta description are often near-copies of
+  // each other. Keeping both produces two claims saying the same thing.
+  const deduped = [];
+  for (const s of out) {
+    const dupe = deduped.find(d => overlap(d.text, s.text) > 0.72);
+    if (!dupe) deduped.push(s);
+    else if (s.text.length > dupe.text.length) deduped[deduped.indexOf(dupe)] = s;
+  }
+  return deduped;
+}
+
+let _blockCache = new WeakMap();
+function blocksOf(html) {
+  if (typeof html !== 'string') return extractBlocks(html);
+  return extractBlocks(html);
+}
+
+/** First sentence of the first paragraph following each heading. */
+function sectionLeads(blocks) {
+  const leads = [];
+  for (let i = 0; i < blocks.length; i++) {
+    if (!/^h[1-4]$/.test(blocks[i].tag)) continue;
+    const body = blocks.slice(i + 1).find(b => b.tag === 'p' && b.text.length >= 60);
+    if (!body) continue;
+    const first = body.text.split(/(?<=[.!?])\s+(?=[A-Z0-9"\u201c'(])/u)[0]?.trim();
+    if (first && first.length >= 50 && first.length <= 320) leads.push(first);
+  }
+  return leads;
+}
+
+/** Word overlap, used to decide which sentences support which summary. */
+function overlap(a, b) {
+  const A = new Set(normalizeText(a).toLowerCase().match(/\p{Letter}{3,}/gu) ?? []);
+  const B = new Set(normalizeText(b).toLowerCase().match(/\p{Letter}{3,}/gu) ?? []);
+  if (!A.size || !B.size) return 0;
+  let shared = 0;
+  for (const t of A) if (B.has(t)) shared++;
+  return shared / Math.min(A.size, B.size);
+}
+
+const SUPPORT_THRESHOLD = 0.18;
+const MAX_EVIDENCE_PER_CLAIM = 6;
+
+function toEvidence(c, { url, title, meta }) {
+  const locator = {};
+  if (c.block?.id) locator.section = c.block.id;
+  else if (c.block?.section) locator.section = c.block.section;
+  locator.fragment = textFragment(c.text);
+  const published = meta['article:published_time']?.slice(0, 10);
+  return {
+    url,
+    text: c.text,
+    ...(title ? { title } : {}),
+    locator,
+    integrity: { sha256: sha256OfText(c.text) },
+    source_type: 'first-party',
+    authority: 'publisher',
+    ...(published && /^\d{4}-\d{2}-\d{2}$/.test(published) ? { published_at: published } : {}),
+    verification: { verified: false, verified_at: new Date().toISOString().slice(0, 10), method: 'automatically-generated' }
+  };
+}
+
+const ATOMIC_TYPES = new Set(['policy', 'certification', 'credential', 'pricing', 'statistic', 'availability', 'contact']);
+
+function clusterUnderSummaries(verified, summaries, ctx) {
+  const used = new Set();
+  const claims = [];
+  const summariesOnly = ctx.o.claims !== 'all';
+  if (summariesOnly) summaries = summaries.filter(s => s.source === 'schema.org' || s.source === 'meta');
+
+  for (const summary of summaries) {
+    const supporting = verified
+      .map((c, i) => ({ c, i, score: overlap(summary.text, c.text) }))
+      .filter(x => !used.has(x.i) && x.score >= SUPPORT_THRESHOLD)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_EVIDENCE_PER_CLAIM);
+    if (!supporting.length) continue;
+    for (const x of supporting) used.add(x.i);
+
+    const types = supporting.map(x => x.c.type);
+    const type = summary.type ?? types.sort((a, b) =>
+      types.filter(t => t === b).length - types.filter(t => t === a).length)[0];
+
+    claims.push({
+      type,
+      claim: summary.text,
+      summary_source: summary.source,
+      tier: 1,
+      why: `summary from ${summary.source}, ${supporting.length} supporting quote(s)`,
+      evidence: supporting.map(x => toEvidence(x.c, ctx))
+    });
+  }
+
+  // Sentences no summary covered stand on their own. In 'summaries' mode only
+  // atomic facts qualify — a discrete, checkable statement is worth publishing
+  // whether or not a page summary happens to mention it.
+  for (const [i, c] of verified.entries()) {
+    if (used.has(i)) continue;
+    if (summariesOnly && !ATOMIC_TYPES.has(c.type)) continue;
+    if (claims.length >= ctx.o.maxCandidatesPerPage) break;
+    claims.push({
       type: c.type,
-      claim: c.claim,
+      claim: c.text,
+      summary_source: 'evidence',
       tier: c.tier,
       why: c.why,
-      evidence: {
-        url: url.split('#')[0],
-        text: c.text,
-        ...(title ? { title } : {}),
-        locator,
-        integrity: { sha256: sha256OfText(c.text) },
-        source_type: 'first-party',
-        authority: 'publisher',
-        ...(meta['article:published_time']?.slice(0, 10)?.match(/^\d{4}-\d{2}-\d{2}$/) ? { published_at: meta['article:published_time'].slice(0, 10) } : {}),
-        verification: { verified: false, verified_at: new Date().toISOString().slice(0, 10), method: 'automatically-generated' }
-      }
+      evidence: [toEvidence(c, ctx)]
     });
-    if (evidence.length >= o.maxCandidatesPerPage) break;
   }
+  return dropSubsumed(claims).slice(0, ctx.o.maxCandidatesPerPage);
+}
 
-  // Finding nothing is ambiguous: the page may genuinely have no claims, or it
-  // may assemble its content in the browser where fetching cannot see it.
-  // Saying which is the difference between a useful result and a misleading one.
-  let note = null;
-  if (evidence.length === 0) {
-    const cr = looksClientRendered(html);
-    if (cr.likely) note = { code: 'client-rendered', reasons: cr.reasons, textLength: cr.textLength };
-    else note = { code: 'no-candidates', reasons: [`${cr.textLength} characters of visible text, none matching a claim pattern`], textLength: cr.textLength };
+/**
+ * Two summaries on the same page (a schema.org description and a meta
+ * description, typically) often say the same thing in different words. Text
+ * similarity is an unreliable way to catch that — the wording can differ a lot.
+ * What gives it away is that they end up standing over the same quotes, so
+ * compare evidence sets and keep the better-supported claim.
+ */
+function dropSubsumed(claims) {
+  const key = c => new Set(c.evidence.map(e => normalizeText(e.text).toLowerCase()));
+  const out = [];
+  for (const c of [...claims].sort((a, b) => b.evidence.length - a.evidence.length)) {
+    const ck = key(c);
+    const covered = out.some(kept => {
+      const kk = key(kept);
+      let shared = 0;
+      for (const t of ck) if (kk.has(t)) shared++;
+      return shared / ck.size >= 0.5;     // half its support already stands under another claim
+    });
+    if (!covered) out.push(c);
   }
-  return { url, title, candidates: evidence, note };
+  return out;
 }
 
 // ------------------------------------------------------------------- site ---
@@ -265,12 +427,18 @@ function slugify(s, max = 48) {
 export function toManifest(site, candidates) {
   const used = new Set();
   const claims = candidates.map(c => {
-    let id = `${c.type.replace(/_/g, '-')}-${slugify(c.claim, 40)}`;
+    let id = `${String(c.type).replace(/_/g, '-')}-${slugify(c.claim, 40)}`;
     let n = 2;
     const base = id;
     while (used.has(id)) id = `${base}-${n++}`;
     used.add(id);
-    return { id, type: c.type, claim: c.claim, evidence: [c.evidence] };
+    return {
+      id,
+      type: c.type,
+      claim: c.claim,
+      ...(c.summary_source ? { summary_source: c.summary_source } : {}),
+      evidence: c.evidence ?? [c.evidence]
+    };
   });
 
   return {

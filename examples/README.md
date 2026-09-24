@@ -40,4 +40,6 @@ The text fragment takes a browser straight to the sentence; a non-browser agent 
 
 **6 — Answer with attribution.** *"Example Corp states its platform runs air-gapped with no outbound network access required, on its deployment documentation page, last verified 2026-09-24. This is the company's own statement, not an independent assessment."*
 
-What the agent saved: one request and one targeted fetch, instead of discovering, crawling and interpreting the whole site. What it did not save: the verification step. The manifest narrows the search; it does not license belief.
+What the agent saved: discovery. Instead of crawling the site to find where deployment is described, it made one request and went straight to the sentence. On a 13-page site that is 25 KB against 499 KB.
+
+What it still did: confirmed the quote, because the answer was load-bearing. For a lower-stakes question it could have relied on `manifest.verification` — the publisher's record of when every quote was last confirmed — and spot-checked instead. See [SPEC.md §8a](../SPEC.md) for when each is appropriate.

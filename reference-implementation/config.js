@@ -11,6 +11,7 @@ export const CONFIG_DEFAULTS = {
   types: [],               // claim types to keep; empty means all
   maxPages: EXTRACT_DEFAULTS.maxPages,
   maxPerType: EXTRACT_DEFAULTS.maxPerType,
+  claims: 'summaries',     // 'summaries' | 'all'
   pin: []                  // hand-written claims, always included, never overwritten
 };
 
@@ -39,6 +40,9 @@ export function loadConfig(file = CONFIG_FILENAME) {
   if (!['sitemap', 'links', 'none'].includes(cfg.discover)) {
     const e = new Error(`${file}: "discover" must be one of sitemap, links, none`); e.code = 'bad-config'; throw e;
   }
+  if (!['summaries', 'all'].includes(cfg.claims)) {
+    const e = new Error(`${file}: "claims" must be "summaries" or "all"`); e.code = 'bad-config'; throw e;
+  }
   return cfg;
 }
 
@@ -62,7 +66,8 @@ export async function initConfig(siteInput) {
     discover,
     include: [],
     exclude: ['/privacy', '/terms', '/legal/*'],
-    types: ['organization', 'capability', 'product', 'service', 'technical_claim', 'certification', 'statistic'],
+    types: [],
+    claims: 'summaries',
     maxPages: CONFIG_DEFAULTS.maxPages,
     maxPerType: CONFIG_DEFAULTS.maxPerType,
     pin: []
@@ -115,7 +120,7 @@ export async function generate(cfg, { onPage } = {}) {
 
   for (const url of pages) {
     try {
-      const r = await extractFromPage(url, { maxPerType: cfg.maxPerType, maxCandidatesPerPage: EXTRACT_DEFAULTS.maxCandidatesPerPage });
+      const r = await extractFromPage(url, { maxPerType: cfg.maxPerType, claims: cfg.claims, maxCandidatesPerPage: EXTRACT_DEFAULTS.maxCandidatesPerPage });
       const kept = cfg.types.length ? r.candidates.filter(c => cfg.types.includes(c.type)) : r.candidates;
       found.push(...kept);
       if (r.note?.code === 'client-rendered') clientRendered.push({ url, reasons: r.note.reasons });

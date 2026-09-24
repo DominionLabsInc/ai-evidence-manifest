@@ -4,15 +4,24 @@
   "title": "AI Evidence Manifest",
   "description": "A publisher-declared index linking important claims on a website to the first-party evidence supporting them. The manifest asserts where evidence is located; it does not assert that any claim is true.",
   "type": "object",
-  "required": ["manifest", "claims"],
+  "required": [
+    "manifest",
+    "claims"
+  ],
   "additionalProperties": false,
   "properties": {
-    "manifest": { "$ref": "#/$defs/manifestHeader" },
-    "publisher": { "$ref": "#/$defs/publisher" },
+    "manifest": {
+      "$ref": "#/$defs/manifestHeader"
+    },
+    "publisher": {
+      "$ref": "#/$defs/publisher"
+    },
     "claims": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/claim" }
+      "items": {
+        "$ref": "#/$defs/claim"
+      }
     },
     "extensions": {
       "type": "object",
@@ -23,7 +32,10 @@
   "$defs": {
     "manifestHeader": {
       "type": "object",
-      "required": ["version", "site"],
+      "required": [
+        "version",
+        "site"
+      ],
       "additionalProperties": false,
       "properties": {
         "version": {
@@ -35,28 +47,52 @@
           "$ref": "#/$defs/httpsUrl",
           "description": "Origin the manifest describes. All first-party evidence SHOULD be within this origin."
         },
-        "generated_at": { "$ref": "#/$defs/dateTime" },
-        "generator": { "type": "string", "maxLength": 200 },
-        "language": { "$ref": "#/$defs/language" }
+        "generated_at": {
+          "$ref": "#/$defs/dateTime"
+        },
+        "generator": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "language": {
+          "$ref": "#/$defs/language"
+        },
+        "verification": {
+          "$ref": "#/$defs/manifestVerification",
+          "description": "Result of the last time the whole manifest was checked against the live site."
+        }
       }
     },
     "publisher": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "name": { "type": "string", "minLength": 1, "maxLength": 200 },
-        "url": { "$ref": "#/$defs/httpsUrl" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "url": {
+          "$ref": "#/$defs/httpsUrl"
+        },
         "same_as": {
           "type": "array",
           "maxItems": 50,
-          "items": { "$ref": "#/$defs/httpsUrl" },
+          "items": {
+            "$ref": "#/$defs/httpsUrl"
+          },
           "description": "Other URLs identifying the same publisher. Informational only; this is not identity verification."
         }
       }
     },
     "claim": {
       "type": "object",
-      "required": ["id", "type", "claim", "evidence"],
+      "required": [
+        "id",
+        "type",
+        "claim",
+        "evidence"
+      ],
       "additionalProperties": false,
       "properties": {
         "id": {
@@ -65,41 +101,103 @@
           "maxLength": 128,
           "description": "Stable identifier, unique within the manifest."
         },
-        "type": { "$ref": "#/$defs/claimType" },
-        "claim": { "type": "string", "minLength": 1, "maxLength": 1000 },
-        "description": { "type": "string", "maxLength": 2000 },
-        "scope": { "type": "string", "maxLength": 200 },
-        "importance": { "enum": ["primary", "secondary"] },
-        "language": { "$ref": "#/$defs/language" },
+        "type": {
+          "$ref": "#/$defs/claimType"
+        },
+        "claim": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "scope": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "importance": {
+          "enum": [
+            "primary",
+            "secondary"
+          ]
+        },
+        "language": {
+          "$ref": "#/$defs/language"
+        },
         "evidence": {
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/evidence" }
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "summary_source": {
+          "enum": [
+            "schema.org",
+            "meta",
+            "heading",
+            "evidence"
+          ],
+          "description": "Where the claim text came from. schema.org and meta are summaries the publisher wrote; heading is a section title; evidence means the claim restates a single quote because no summary covered it."
         }
       }
     },
     "evidence": {
       "type": "object",
-      "required": ["url", "text", "source_type"],
+      "required": [
+        "url",
+        "text",
+        "source_type"
+      ],
       "additionalProperties": false,
       "properties": {
-        "url": { "$ref": "#/$defs/httpsUrl" },
+        "url": {
+          "$ref": "#/$defs/httpsUrl"
+        },
         "text": {
           "type": "string",
           "minLength": 1,
           "maxLength": 2000,
           "description": "Exact text as it appears at the referenced location, before normalization."
         },
-        "title": { "type": "string", "maxLength": 300 },
-        "locator": { "$ref": "#/$defs/locator" },
-        "integrity": { "$ref": "#/$defs/integrity" },
-        "source_type": { "$ref": "#/$defs/sourceType" },
-        "authority": { "$ref": "#/$defs/authority" },
-        "scope": { "type": "string", "maxLength": 200 },
-        "language": { "$ref": "#/$defs/language" },
-        "published_at": { "$ref": "#/$defs/date" },
-        "modified_at": { "$ref": "#/$defs/date" },
-        "verification": { "$ref": "#/$defs/verification" }
+        "title": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "locator": {
+          "$ref": "#/$defs/locator"
+        },
+        "integrity": {
+          "$ref": "#/$defs/integrity"
+        },
+        "source_type": {
+          "$ref": "#/$defs/sourceType"
+        },
+        "authority": {
+          "$ref": "#/$defs/authority"
+        },
+        "scope": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "language": {
+          "$ref": "#/$defs/language"
+        },
+        "published_at": {
+          "$ref": "#/$defs/date"
+        },
+        "modified_at": {
+          "$ref": "#/$defs/date"
+        },
+        "verification": {
+          "$ref": "#/$defs/verification"
+        },
+        "last_seen": {
+          "$ref": "#/$defs/dateTime",
+          "description": "When this specific quote was last confirmed present at its URL. Absent means never confirmed, or not confirmed since the manifest was written."
+        }
       }
     },
     "locator": {
@@ -112,8 +210,16 @@
           "maxLength": 1000,
           "description": "URL fragment, ideally a W3C Text Fragment (#:~:text=...)."
         },
-        "section": { "type": "string", "maxLength": 200, "description": "Element id of the containing section." },
-        "selector": { "type": "string", "maxLength": 500, "description": "CSS selector. Advisory only; MUST NOT be the sole locator relied upon." }
+        "section": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Element id of the containing section."
+        },
+        "selector": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "CSS selector. Advisory only; MUST NOT be the sole locator relied upon."
+        }
       }
     },
     "integrity": {
@@ -130,32 +236,75 @@
     },
     "verification": {
       "type": "object",
-      "required": ["method"],
+      "required": [
+        "method"
+      ],
       "additionalProperties": false,
       "properties": {
-        "verified": { "type": "boolean" },
-        "verified_at": { "$ref": "#/$defs/date" },
-        "method": { "$ref": "#/$defs/verificationMethod" }
+        "verified": {
+          "type": "boolean"
+        },
+        "verified_at": {
+          "$ref": "#/$defs/date"
+        },
+        "method": {
+          "$ref": "#/$defs/verificationMethod"
+        }
       }
     },
     "claimType": {
       "enum": [
-        "capability", "product", "service", "organization", "person", "location",
-        "credential", "certification", "technical_claim", "business_fact", "statistic",
-        "policy", "pricing", "availability", "contact", "announcement", "research",
-        "documentation", "other"
+        "capability",
+        "product",
+        "service",
+        "organization",
+        "person",
+        "location",
+        "credential",
+        "certification",
+        "technical_claim",
+        "business_fact",
+        "statistic",
+        "policy",
+        "pricing",
+        "availability",
+        "contact",
+        "announcement",
+        "research",
+        "documentation",
+        "other"
       ]
     },
     "sourceType": {
-      "enum": ["first-party", "third-party", "independent", "regulatory", "public-record", "unknown"],
+      "enum": [
+        "first-party",
+        "third-party",
+        "independent",
+        "regulatory",
+        "public-record",
+        "unknown"
+      ],
       "description": "Relationship of the evidence location to the manifest publisher."
     },
     "authority": {
-      "enum": ["publisher", "author", "regulator", "certifier", "independent-auditor", "unknown"],
+      "enum": [
+        "publisher",
+        "author",
+        "regulator",
+        "certifier",
+        "independent-auditor",
+        "unknown"
+      ],
       "description": "Who stands behind the statement. Distinct from source_type, which describes where it lives."
     },
     "verificationMethod": {
-      "enum": ["publisher-confirmed", "automatically-generated", "externally-verified", "manually-reviewed", "unknown"],
+      "enum": [
+        "publisher-confirmed",
+        "automatically-generated",
+        "externally-verified",
+        "manually-reviewed",
+        "unknown"
+      ],
       "description": "publisher-confirmed means a human at the publisher asserted this. It is NOT independent verification."
     },
     "httpsUrl": {
@@ -165,8 +314,58 @@
       "maxLength": 2048,
       "description": "Absolute HTTPS URL. http:// is rejected so consumers are not induced to fetch over plaintext."
     },
-    "date": { "type": "string", "format": "date" },
-    "dateTime": { "type": "string", "format": "date-time" },
-    "language": { "type": "string", "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$", "maxLength": 35 }
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "dateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "language": {
+      "type": "string",
+      "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$",
+      "maxLength": 35
+    },
+    "manifestVerification": {
+      "type": "object",
+      "required": [
+        "checked_at",
+        "method",
+        "evidence_total",
+        "evidence_present"
+      ],
+      "additionalProperties": false,
+      "description": "A publisher-reported freshness record. It is a publisher assertion like any other, but it is falsifiable: a consumer that spot-checks can detect a publisher reporting checks it did not run.",
+      "properties": {
+        "checked_at": {
+          "$ref": "#/$defs/dateTime",
+          "description": "When the check ran."
+        },
+        "method": {
+          "enum": [
+            "generated-from-source",
+            "automated-recheck",
+            "manual-recheck"
+          ],
+          "description": "generated-from-source: every quote was read out of the live page during generation, so presence is true by construction. automated-recheck: each evidence URL was refetched and the quote confirmed. manual-recheck: a person confirmed them."
+        },
+        "evidence_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_present": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "How many quotes were found at their URL. Below evidence_total means the site has drifted."
+        },
+        "recheck_interval_days": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365,
+          "description": "How often the publisher intends to re-check. A consumer can treat the record as stale past this."
+        }
+      }
+    }
   }
 }

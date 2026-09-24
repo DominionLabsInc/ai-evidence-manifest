@@ -68,6 +68,19 @@ export async function validateManifest(manifest, opts = {}) {
     findings.push(warn('size', `${manifest.claims.length} claims, above the recommended ${o.limits.maxClaims}`, '/claims'));
   }
 
+  // ---- freshness of the manifest as a whole ----------------------------
+  const mv = manifest.manifest.verification;
+  if (mv) {
+    const ageDays = (Date.now() - Date.parse(mv.checked_at)) / 86_400_000;
+    const limit = mv.recheck_interval_days ?? o.limits.staleAfterDays;
+    if (ageDays > limit) {
+      findings.push(warn('verification-stale', `last checked ${Math.round(ageDays)} days ago, past the ${limit}-day interval the manifest declares`, '/manifest/verification/checked_at'));
+    }
+    if (mv.evidence_present < mv.evidence_total) {
+      findings.push(warn('verification-incomplete', `${mv.evidence_total - mv.evidence_present} of ${mv.evidence_total} quotes were not found at their source when last checked`, '/manifest/verification'));
+    }
+  }
+
   // ---- identifiers -----------------------------------------------------
   const seen = new Map();
   manifest.claims.forEach((c, i) => {
@@ -81,6 +94,7 @@ export async function validateManifest(manifest, opts = {}) {
   try { siteOrigin = new URL(manifest.manifest.site).origin; } catch { /* schema already rejected this */ }
 
   const now = Date.now();
+  const evidenceSeen = [];
   stats.claims = manifest.claims.length;
 
   for (const [ci, claim] of manifest.claims.entries()) {
@@ -150,21 +164,47 @@ export async function validateManifest(manifest, opts = {}) {
           }
         }
         const page = cache.get(key);
-        if (!page.ok) { findings.push(err('unreachable', `evidence URL not retrievable (${page.reason})`, `${at}/url`)); continue; }
+        if (!page.ok) { findings.push(err('unreachable', `evidence URL not retrievable (${page.reason})`, `${at}/url`)); evidenceSeen.push({ ci, ei, present: false }); continue; }
         stats.reachable++;
-        if (containsNormalized(page.text, ev.text)) stats.textPresent++;
-        else findings.push(err('text-absent', 'quoted text was not found at the evidence URL — the page may have changed', `${at}/text`));
+        if (containsNormalized(page.text, ev.text)) { stats.textPresent++; evidenceSeen.push({ ci, ei, present: true }); }
+        else { findings.push(err('text-absent', 'quoted text was not found at the evidence URL — the page may have changed', `${at}/text`)); evidenceSeen.push({ ci, ei, present: false }); }
       }
     }
   }
 
-  return finish(findings, stats, o);
+  return finish(findings, stats, o, evidenceSeen);
 }
 
-function finish(findings, stats, o) {
+/**
+ * Stamp a freshness record into a manifest after an online check.
+ *
+ * A consumer cannot take this on faith — it is a publisher assertion. But it is
+ * falsifiable: anyone who spot-checks a single quote can catch a publisher
+ * reporting checks it never ran. Freshness lets an agent verify in proportion
+ * to stakes instead of refetching everything every time.
+ */
+export function stampVerification(manifest, result, { method = 'automated-recheck', recheckIntervalDays } = {}) {
+  const at = new Date().toISOString();
+  for (const { ci, ei, present } of result.seen ?? []) {
+    if (present) manifest.claims[ci].evidence[ei].last_seen = at;
+    else delete manifest.claims[ci].evidence[ei].last_seen;
+  }
+  manifest.manifest.verification = {
+    checked_at: at,
+    method,
+    evidence_total: result.stats.evidence,
+    evidence_present: result.stats.textPresent,
+    ...(recheckIntervalDays ? { recheck_interval_days: recheckIntervalDays }
+      : manifest.manifest.verification?.recheck_interval_days
+        ? { recheck_interval_days: manifest.manifest.verification.recheck_interval_days } : {})
+  };
+  return manifest;
+}
+
+function finish(findings, stats, o, seen = []) {
   const errors = findings.filter(f => f.severity === 'error');
   const warnings = findings.filter(f => f.severity === 'warning');
-  return { valid: errors.length === 0 && (!o.strict || warnings.length === 0), errors, warnings, findings, stats, strict: o.strict, offline: o.offline };
+  return { valid: errors.length === 0 && (!o.strict || warnings.length === 0), errors, warnings, findings, stats, seen, strict: o.strict, offline: o.offline };
 }
 
 export function parseManifest(raw) {
