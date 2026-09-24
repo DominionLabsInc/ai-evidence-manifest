@@ -106,8 +106,8 @@ For what a consumer should and should not infer from an entry, see [SPEC.md §1]
 | **Docker** | `docker run --rm -v "$PWD:/work" ghcr.io/dominionlabsinc/ai-evidence generate` |
 | **From source** | `git clone … && npm install && npm link` |
 
-> Not yet published to npm, PyPI, Homebrew or GHCR. Until then, clone and
-> `npm link`, or `pip install -e python/`.
+> npm and PyPI are live. Homebrew and the container image are packaged but not
+> yet published; use the npm or pip install above.
 
 The Python and JavaScript implementations are equivalent — same commands, same
 output. A conformance suite runs both over the same corpus and requires

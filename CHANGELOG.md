@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The spe
 
 ## [1.0.0] — 2026-09-24
 
+Published as `ai-evidence` 0.1.0 on [npm](https://www.npmjs.com/package/ai-evidence)
+and [PyPI](https://pypi.org/project/ai-evidence/). The specification is version
+1.0.0; the tooling is versioned separately and starts at 0.1.0.
+
 First public specification and reference implementation.
 
 ### Specification
