@@ -6,6 +6,7 @@ import { extractFromSite, extractFromPage, toManifest } from '../reference-imple
 import { fetchSafe, FetchRefused, normalizeInputUrl } from '../reference-implementation/fetch-safe.js';
 import { loadConfig, writeConfig, initConfig, generate, CONFIG_FILENAME, WELL_KNOWN_PATH, ALIAS_PATH } from '../reference-implementation/config.js';
 import { repairManifest, SIMILARITY_THRESHOLD } from '../reference-implementation/repair.js';
+import { generateKeyPair, signManifest, verifyManifest, buildJwks, dnsTxtRecord, JWKS_PATH, SignatureError } from '../reference-implementation/jws.js';
 
 const C = process.stdout.isTTY
   ? { red: s => `\x1b[31m${s}\x1b[0m`, yellow: s => `\x1b[33m${s}\x1b[0m`, green: s => `\x1b[32m${s}\x1b[0m`, dim: s => `\x1b[2m${s}\x1b[0m`, bold: s => `\x1b[1m${s}\x1b[0m` }
@@ -20,6 +21,9 @@ Usage:
   ai-evidence check <file> --update Re-check evidence and record the result in the file
   ai-evidence repair <file>         Re-check, relocate drifted quotes, rewrite the file
   ai-evidence extract <url>         One-shot generate without a config file
+  ai-evidence keygen                Create an Ed25519 signing key and a JWKS
+  ai-evidence sign <file>           Sign a manifest with that key
+  ai-evidence verify <file|url>     Check a manifest's signatures against a JWKS
 
 Typical use:
   ai-evidence init https://example.com
@@ -55,8 +59,27 @@ Extract options:
   --per-type <n>   Max claims per type (default 6, 0 disables)
   --page-only      Only the given page, do not discover other URLs
 
+Signing options:
+  keygen --out <dir>    Where to write (default: the current directory)
+  keygen --site <url>   Host to print the optional DNS TXT record for
+  sign --key <file>     Private key JWK (default ai-evidence-signing-key.json)
+  sign --out <file>     Write the signed manifest (default: in place)
+  verify --jwks <f|url> Key set to check against. When verifying a URL this
+                        defaults to /.well-known/ai-evidence-jwks.json at the same origin.
+  validate --jwks <f|url>  Also check signatures while validating
+
+Signing is optional. It makes a manifest verifiable after it has been stored
+and passed on, which HTTPS alone cannot do. See SPEC.md section 12.
+
 Exit codes: 0 valid, 1 invalid, 2 usage or transport error
 `;
+
+/**
+ * Flags that take a value. A flag missing from this list is parsed as a
+ * boolean, so its value is silently swallowed as a positional argument —
+ * add new value-taking flags here.
+ */
+const VALUE_FLAGS = ['out', 'max-pages', 'per-type', 'config', 'interval', 'threshold', 'key', 'jwks', 'site'];
 
 function parseArgs(argv) {
   const out = { _: [], flags: {} };
@@ -64,8 +87,16 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a.startsWith('--')) {
       const key = a.slice(2);
-      if (['out', 'max-pages', 'per-type', 'config', 'interval', 'threshold'].includes(key)) out.flags[key] = argv[++i];
-      else out.flags[key] = true;
+      if (VALUE_FLAGS.includes(key)) {
+        const value = argv[++i];
+        // Without this a missing value silently becomes the next flag, or
+        // `undefined`, and the command runs against the wrong target.
+        if (value === undefined || value.startsWith('--')) {
+          process.stderr.write(`error: --${key} needs a value\n`);
+          process.exit(2);
+        }
+        out.flags[key] = value;
+      } else out.flags[key] = true;
     } else out._.push(a);
   }
   return out;
@@ -137,7 +168,12 @@ async function cmdValidate(args) {
   }
 
   const offline = args.flags.offline ? true : args.flags.online ? false : !isUrl(target);
-  const result = await validateManifest(parsed.manifest, { offline, strict: !!args.flags.strict, rawBytes: parsed.bytes });
+  let jwks = null;
+  if (args.flags.jwks) {
+    try { jwks = await readJwks(args.flags.jwks); }
+    catch (e) { process.stderr.write(C.red(`error: ${e.message}\n`)); return 2; }
+  }
+  const result = await validateManifest(parsed.manifest, { offline, strict: !!args.flags.strict, rawBytes: parsed.bytes, jwks });
   report(result, source, !!args.flags.json);
   return result.valid ? 0 : 1;
 }
@@ -334,9 +370,139 @@ async function cmdCheck(args) {
   return result.valid ? 0 : 1;
 }
 
+/** Read a key set from a local file or a URL. */
+async function readJwks(target) {
+  if (isUrl(target)) {
+    const res = await fetchSafe(normalizeInputUrl(target), { accept: 'application/jwk-set+json,application/json' });
+    if (res.status < 200 || res.status >= 300) throw new Error(`key set fetch failed: HTTP ${res.status}`);
+    return JSON.parse(res.body);
+  }
+  const p = path.resolve(target);
+  if (!fs.existsSync(p)) throw new Error(`no such key set: ${p}`);
+  return JSON.parse(fs.readFileSync(p, 'utf8'));
+}
+
+async function cmdKeygen(args) {
+  const outDir = path.resolve(args.flags.out || '.');
+  const keyPath = path.join(outDir, 'ai-evidence-signing-key.json');
+  if (fs.existsSync(keyPath) && !args.flags.force) {
+    process.stderr.write(C.red(`error: ${keyPath} already exists; refusing to overwrite a signing key (use --force)\n`));
+    return 2;
+  }
+  const jwksPath = path.join(outDir, '.well-known', 'ai-evidence-jwks.json');
+
+  const kp = generateKeyPair();
+  fs.mkdirSync(path.dirname(jwksPath), { recursive: true });
+  // Created closed rather than chmod-ed afterwards, so the key is never
+  // world-readable even briefly.
+  fs.writeFileSync(keyPath, JSON.stringify(kp.privateJwk, null, 2) + '\n', { mode: 0o600 });
+  fs.writeFileSync(jwksPath, JSON.stringify(buildJwks([kp.publicJwk]), null, 2) + '\n');
+
+  const site = args.flags.site ? new URL(normalizeInputUrl(args.flags.site)).hostname : 'example.com';
+  const txt = dnsTxtRecord(kp.publicJwk, site);
+
+  process.stdout.write(`\n  ${C.bold('key id')}  ${kp.kid}\n\n`);
+  process.stdout.write(`  ${C.green('private')}  ${keyPath}  ${C.dim('(mode 0600)')}\n`);
+  process.stdout.write(`  ${C.green('public')}   ${jwksPath}\n\n`);
+  process.stdout.write(`  ${C.yellow('Do not commit or publish the private key.')} Serve only the JWKS, at\n`);
+  process.stdout.write(`  ${C.dim(JWKS_PATH)} on the same origin as the manifest.\n\n`);
+  process.stdout.write(`  ${C.dim('Optional — anchor the key in DNS as well, so a consumer can establish it')}\n`);
+  process.stdout.write(`  ${C.dim('without trusting the web host:')}\n`);
+  process.stdout.write(`    ${txt.name}  TXT  "${txt.value}"\n\n`);
+  return 0;
+}
+
+async function cmdSign(args) {
+  const target = args._[1];
+  if (!target) { process.stderr.write(USAGE); return 2; }
+  const file = path.resolve(target);
+  if (!fs.existsSync(file)) { process.stderr.write(C.red(`error: no such file: ${file}\n`)); return 2; }
+
+  const keyFile = path.resolve(args.flags.key || 'ai-evidence-signing-key.json');
+  if (!fs.existsSync(keyFile)) {
+    process.stderr.write(C.red(`error: no signing key at ${keyFile}; run \`ai-evidence keygen\` first\n`));
+    return 2;
+  }
+
+  let manifest, privateJwk;
+  try {
+    manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+    privateJwk = JSON.parse(fs.readFileSync(keyFile, 'utf8'));
+  } catch (e) { process.stderr.write(C.red(`error: ${e.message}\n`)); return 2; }
+
+  // A signature over a document that is already invalid only makes the
+  // invalidity authentic, so check first and say so.
+  const pre = await validateManifest(manifest, { offline: true });
+  if (!pre.valid) {
+    process.stderr.write(C.red(`error: refusing to sign an invalid manifest (${pre.errors.length} error(s))\n`));
+    for (const f of pre.errors) process.stderr.write(`  ${C.dim(f.where)} ${f.message}\n`);
+    return 1;
+  }
+
+  let signed;
+  try {
+    // Re-signing replaces rather than accumulates: a signature over an older
+    // payload can never verify again, so keeping it only produces noise.
+    const { signatures, ...unsigned } = manifest;
+    signed = signManifest(unsigned, privateJwk);
+  } catch (e) {
+    process.stderr.write(C.red(`error: ${e.message}\n`));
+    return 2;
+  }
+
+  const out = path.resolve(args.flags.out || file);
+  fs.writeFileSync(out, JSON.stringify(signed, null, 2) + '\n');
+  const header = JSON.parse(Buffer.from(signed.signatures.at(-1).protected, 'base64url').toString('utf8'));
+  process.stdout.write(`\n  ${C.green('signed')}  ${out}\n`);
+  process.stdout.write(`  ${C.dim(`key ${header.kid} · iat ${new Date(header.iat * 1000).toISOString()}`)}\n\n`);
+  return 0;
+}
+
+async function cmdVerify(args) {
+  const target = args._[1];
+  if (!target) { process.stderr.write(USAGE); return 2; }
+
+  let raw, source, jwks;
+  try {
+    ({ raw, source } = await readManifest(target));
+    const jwksTarget = args.flags.jwks
+      || (isUrl(target) ? new URL(JWKS_PATH, normalizeInputUrl(target)).toString() : null);
+    if (!jwksTarget) {
+      process.stderr.write(C.red('error: verifying a local file needs --jwks <file|url>\n'));
+      return 2;
+    }
+    jwks = await readJwks(jwksTarget);
+  } catch (e) {
+    process.stderr.write(C.red(`error: ${e instanceof FetchRefused ? `${e.code}: ${e.message}` : e.message}\n`));
+    return 2;
+  }
+
+  let manifest;
+  try { manifest = JSON.parse(raw); }
+  catch (e) { process.stderr.write(C.red(`error: manifest is not valid JSON: ${e.message}\n`)); return 1; }
+
+  const result = verifyManifest(manifest, jwks);
+  if (args.flags.json) { process.stdout.write(JSON.stringify({ source, ...result }, null, 2) + '\n'); return result.verified ? 0 : 1; }
+
+  process.stdout.write(`\n${C.bold(source)}\n\n`);
+  if (!result.signed) {
+    process.stdout.write(`  ${C.yellow('UNSIGNED')}  no signatures; this manifest is attributable only to the transport that delivered it\n\n`);
+    return 1;
+  }
+  for (const r of result.results) {
+    if (r.valid) process.stdout.write(`  ${C.green('ok')}      ${r.kid}  ${C.dim(`signed ${new Date(r.iat * 1000).toISOString()}`)}\n`);
+    else process.stdout.write(`  ${C.red('bad')}     ${r.reason}  ${C.dim('[' + r.code + ']')}\n`);
+  }
+  process.stdout.write('\n');
+  process.stdout.write(result.verified
+    ? `  ${C.green('VERIFIED')}  ${result.results.filter(r => r.valid).length} of ${result.results.length} signature(s) check out\n\n`
+    : `  ${C.red('UNVERIFIED')}  no signature checks out against this key set\n\n`);
+  return result.verified ? 0 : 1;
+}
+
 const args = parseArgs(process.argv.slice(2));
 const cmd = args._[0];
 if (!cmd || args.flags.help || cmd === 'help') { process.stdout.write(USAGE); process.exit(cmd ? 0 : 2); }
-const handlers = { init: cmdInit, generate: cmdGenerate, validate: cmdValidate, extract: cmdExtract, check: cmdCheck, repair: cmdRepair };
+const handlers = { init: cmdInit, generate: cmdGenerate, validate: cmdValidate, extract: cmdExtract, check: cmdCheck, repair: cmdRepair, keygen: cmdKeygen, sign: cmdSign, verify: cmdVerify };
 if (!handlers[cmd]) { process.stderr.write(C.red(`unknown command: ${cmd}\n\n`) + USAGE); process.exit(2); }
 process.exit(await handlers[cmd](args));

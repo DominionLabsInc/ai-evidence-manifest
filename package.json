@@ -1,6 +1,6 @@
 {
   "name": "ai-evidence",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Reference tooling for the AI Evidence Manifest: a static /ai.json file linking website claims to the first-party evidence supporting them.",
   "license": "Apache-2.0",
   "type": "module",

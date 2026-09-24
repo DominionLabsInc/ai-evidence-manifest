@@ -4,6 +4,98 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The spe
 
 ## [Unreleased]
 
+## [2.1.0] — 2026-09-24
+
+Specification 2.1.0, tooling 0.3.0. Adds optional signing. A minor version:
+every valid 2.0.0 document remains valid, and `signatures` is OPTIONAL.
+
+### The bug this release starts with
+
+Section 12 of 2.0.0 said the `integrity` object was "deliberately open so
+mechanisms can be added without a breaking change". Neither half was true.
+`integrity` is a per-evidence hash object with `additionalProperties: false`
+and one permitted key, and the schema set `additionalProperties: false` in nine
+places including the root — so a manifest carrying a top-level `signatures`
+member was rejected by both implementations. Adding signing was exactly the
+breaking change 2.0.0 promised it would not be.
+
+### Added
+
+- **Signing** (SPEC §12): detached-payload JWS (RFC 7515) over RFC 8785
+  canonical JSON, Ed25519 only. Signatures survive an agent parsing and
+  re-serializing the document, which is what makes a publisher assertion
+  portable beyond the fetch that retrieved it.
+- **Key discovery** (SPEC §12.6): a JWKS at `/.well-known/ai-evidence-jwks.json`,
+  plus an optional DNS TXT anchor for consumers that will not trust the web
+  host. The specification defines the record; neither implementation ships a
+  DNS client, and resolution is the consumer's.
+- `canonicalize` / `canonical_bytes` in both implementations, and
+  `keygen`, `sign` and `verify` in both CLIs. `validate --jwks` checks
+  signatures alongside everything else.
+- Conformance vectors in `tests/conformance/`: canonical-JSON cases, and a
+  fixed key, document and `iat` whose signature both implementations must
+  reproduce byte for byte. Ed25519 is deterministic, so one comparison pins
+  canonicalization, header encoding and signing-input construction at once.
+
+### Changed
+
+- **Unknown members are now MUST-ignore rather than MUST-reject** (SPEC §3).
+  This only widens what validates, so no existing document breaks — but it had
+  to happen before anything could be added to the format. Signature objects are
+  the one exception and still reject unknown members, because nothing inside a
+  signature may be silently skipped.
+- The validator reports unknown members as `unknown-member` warnings, so a
+  misspelled member name stays visible now that the schema permits it. `--strict`
+  still fails on them.
+- A verified signature lifts the §9b.3 rule that a manifest must be retrieved
+  from `manifest.site` to carry any epistemic state (SPEC §12.8). Nothing else
+  in §9b changes: a signature never confers OBSERVED, and never makes a claim
+  true.
+- `python`: `cryptography` is now a required dependency rather than an optional
+  extra. Verification is the common operation and is performed by consumers who
+  did not choose to install anything; a signature format that silently cannot
+  be checked on a default install is worse than none.
+- SPEC §13 records why RFC 9421 (HTTP Message Signatures) was considered and
+  rejected: it signs an HTTP exchange rather than a document, so the signature
+  is lost the moment a consumer stores the JSON.
+- README: the Publishing section still advertised `GET /ai.json` as canonical
+  and a bare `rel="ai-evidence"` link relation, both of which 2.0.0 had already
+  changed.
+
+### Fixed
+
+- The JavaScript CLI parsed any flag outside a hard-coded list as a boolean, so
+  a new value-taking flag silently swallowed its argument. `--key`, `--jwks` and
+  `--site` are registered, and a value-taking flag given no value is now an
+  error rather than a silent `true`.
+- The Python canonicalizer raised `AttributeError` from its sort key on a
+  non-string object key instead of refusing it.
+
+### Security
+
+- One algorithm, no negotiation: `alg` has exactly one permitted value, so there
+  is no algorithm-confusion attack and no `none`.
+- `kid` is the RFC 7638 thumbprint and is checked against the key it names, so
+  an attacker who can serve the key set cannot publish their own key under an
+  honest key's identifier.
+- The protected header must carry exactly four parameters; unknown ones are
+  rejected rather than ignored, so nothing can be smuggled into a signed region
+  that verifiers skip.
+- Canonicalization refuses non-integer numbers, integers outside the IEEE 754
+  safe range, and lone surrogates — values whose canonical form two
+  implementations would not agree on. Refusing at signing time beats a
+  signature that fails to verify in someone else's stack.
+- `keygen` writes the private key mode `0600`, created closed rather than
+  chmod-ed afterwards, and `.gitignore` excludes it.
+
+### Known limits
+
+Stated in SPEC §12.9 and §14.4 rather than left to be discovered: signing does
+not detect a withheld update, does not make a dishonest publisher honest, does
+not authenticate `publisher.same_as`, and offers no revocation. Establishing a
+key from the JWKS still reduces to trusting the web host on first contact; only
+the DNS anchor avoids that.
+
 ## [2.0.0] — 2026-09-24
 
 Specification 2.0.0, tooling 0.2.0. **Breaking**, and superseding 1.0.0 the

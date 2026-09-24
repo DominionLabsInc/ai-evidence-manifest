@@ -151,7 +151,7 @@ class TestValidate:
 
     @pytest.mark.parametrize("fixture", [
         "missing-required.json", "invalid-url-http.json", "invalid-url-javascript.json",
-        "malformed-date.json", "unknown-type.json", "unknown-field.json", "no-claims.json",
+        "malformed-date.json", "unknown-type.json", "no-claims.json",
         # verified:true with automatically-generated is contradictory; the
         # schema forbids it so the two fields cannot disagree.
         "auto-verified.json",
@@ -159,6 +159,17 @@ class TestValidate:
     def test_rejects(self, fixture):
         manifest, nbytes = parse_manifest((FIXTURES / fixture).read_text())
         assert not validate_manifest(manifest, offline=True, raw_bytes=nbytes)["valid"]
+
+    def test_unknown_member_is_reported_not_rejected(self):
+        """The schema permits unknown members so a later minor version can add
+        one without invalidating documents already published. The typo still has
+        to be visible, so it is reported rather than silently accepted."""
+        manifest, nbytes = parse_manifest((FIXTURES / "unknown-field.json").read_text())
+        result = validate_manifest(manifest, offline=True, raw_bytes=nbytes)
+        assert result["valid"]
+        assert any(f["code"] == "unknown-member" for f in result["warnings"])
+        strict = validate_manifest(manifest, offline=True, raw_bytes=nbytes, strict=True)
+        assert not strict["valid"]
 
     def test_stamps_freshness(self):
         manifest, _ = parse_manifest((EXAMPLES / "minimal.json").read_text())

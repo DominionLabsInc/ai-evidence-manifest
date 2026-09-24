@@ -24,7 +24,7 @@ It is a plain static file. Nothing runs, nothing is added to your pages, no acco
 
 ```jsonc
 {
-  "manifest": { "version": "2.0.0", "site": "https://example.com" },
+  "manifest": { "version": "2.1.0", "site": "https://example.com" },
   "claims": [
     {
       "id": "capability-autonomous-ai",
@@ -118,11 +118,12 @@ Pick whichever fits your build.
 
 ```bash
 ai-evidence init https://example.com   # write ai-evidence.config.json
-ai-evidence generate                   # read the site, write ai.json
+ai-evidence generate                   # read the site, write the manifest
 ai-evidence check ai.json --update     # re-verify, record freshness
+ai-evidence sign ai.json               # optional — see Publishing
 ```
 
-Commit `ai.json`, serve it at your site root, and re-run `generate` when your
+Commit the manifest, serve it at your site root, and re-run `generate` when your
 content changes. `ai-evidence repair ai.json` relocates quotes that have
 drifted; anything it cannot confidently relocate it reports rather than
 patches.
@@ -137,25 +138,47 @@ never overwritten by regeneration.
 
 ## Publishing
 
-Serve it at the site root as a normal, publicly accessible static resource, so crawlers and agents can read it like `robots.txt`:
+Serve it as a normal, publicly accessible static resource, so crawlers and agents can read it like `robots.txt`:
 
 ```
-GET /ai.json
-Content-Type: application/json
+GET /.well-known/ai-evidence.json
+Content-Type: application/ai-evidence+json
 Access-Control-Allow-Origin: *
 ```
+
+`/.well-known/` is the canonical location ([RFC 8615](https://www.rfc-editor.org/rfc/rfc8615)). The generator also writes a byte-identical `/ai.json` alias, which is shorter to say out loud and which consumers may fall back to.
 
 Do not put it behind authentication, and do not `Disallow` it in `robots.txt`. See [deploy/](deploy/) for per-platform instructions.
 
 Optional discovery hints:
 
 ```html
-<link rel="ai-evidence" href="/ai.json">
+<link rel="https://dmnlabs.org/ns/ai-evidence" href="/.well-known/ai-evidence.json">
 ```
 
 ```
-Link: </ai.json>; rel="ai-evidence"
+Link: </.well-known/ai-evidence.json>; rel="https://dmnlabs.org/ns/ai-evidence"
 ```
+
+### Signing (optional)
+
+HTTPS proves a manifest came from your origin — to whoever fetched it, at the moment they fetched it. It proves nothing once that agent stores the manifest and passes a claim to something else. Signing makes the document itself the evidence.
+
+```bash
+ai-evidence keygen --site https://example.com   # writes the key and a JWKS
+ai-evidence sign .well-known/ai-evidence.json
+ai-evidence verify https://example.com          # checks it end to end
+```
+
+Publish the JWKS at `/.well-known/ai-evidence-jwks.json`. Keep the private key out of the repository — `keygen` writes it mode `0600` and this repository's `.gitignore` already excludes it.
+
+Signatures are Ed25519 over [RFC 8785](https://www.rfc-editor.org/rfc/rfc8785) canonical JSON, so they survive an agent parsing and re-serializing the document. Optionally anchor the key in DNS as well, which is the only way a consumer can establish it without trusting your web host:
+
+```
+_ai-evidence.example.com  TXT  "v=aem1; k=ed25519; kid=…; p=…"
+```
+
+A signature says *this document was signed by the holder of this key*. It does not say a claim is true, and it does not mean the evidence was checked. [SPEC.md §12](SPEC.md) is exact about what it does and does not establish.
 
 ## How an agent uses it
 
@@ -189,6 +212,14 @@ Roughly:
 two named states, which operations each licenses, and the exact conditions
 under which a manifest conveys no state at all.
 
+**A signature makes the assertion portable.** Unsigned, a manifest carries a
+publisher assertion only while you hold it from that origin over HTTPS — store
+it, relay it, or receive it from a peer, and there is no longer anything
+identifying who spoke, so [SPEC.md §9b.3](SPEC.md) gives it no status at all. A
+signature that verifies against the publisher's key identifies the speaker
+directly, so the assertion survives being passed on. It still does not confer
+*observed*; only fetching the evidence does that.
+
 **The freshness record is falsifiable, not trustworthy.** `manifest.verification`
 says how many quotes the publisher last found present, and when. A publisher
 that never checks can write whatever it likes there. What makes it useful is
@@ -203,11 +234,11 @@ makes systematic fabrication untenable.
 | [`SPEC.md`](SPEC.md) | The normative specification |
 | [`schema/`](schema/) | JSON Schema (draft 2020-12) |
 | [`examples/`](examples/) | A complete worked example and a minimal one |
-| [`reference-implementation/`](reference-implementation/) | JavaScript library: normalize, fetch, extract, validate, repair |
+| [`reference-implementation/`](reference-implementation/) | JavaScript library: normalize, fetch, extract, validate, repair, sign |
 | [`python/`](python/) | Python implementation, same behaviour |
 | [`shared/`](shared/) | Patterns and thresholds both implementations load |
 | [`validator/`](validator/) | `ai-evidence` command-line tool |
-| [`tests/`](tests/) | Test suite and fixtures |
+| [`tests/`](tests/) | Test suite, fixtures, and cross-implementation conformance vectors |
 | [`deploy/`](deploy/) | Deployment recipes |
 | [`SECURITY.md`](SECURITY.md) | Threat model and consumer obligations |
 

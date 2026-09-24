@@ -1,6 +1,6 @@
 # AI Evidence Manifest — Specification
 
-**Version 2.0.0** · Status: proposed open web convention · [Apache-2.0](LICENSE)
+**Version 2.1.0** · Status: proposed open web convention · [Apache-2.0](LICENSE)
 
 The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT and MAY are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119) and [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174).
 
@@ -124,16 +124,32 @@ A manifest is a JSON object with two REQUIRED members, `manifest` and `claims`, 
 manifest        object    REQUIRED   header
 publisher       object    OPTIONAL   who publishes the manifest
 claims          array     REQUIRED   one or more claims, each with evidence
+signatures      array     OPTIONAL   detached JWS signatures — see §12
 extensions      object    OPTIONAL   namespaced extension data
 ```
 
-Unknown members MUST be rejected at the top level and within defined objects; the schema sets `additionalProperties: false`. Forward-compatible data belongs under `extensions`, which consumers MUST ignore when they do not understand it.
+Unknown members MUST be ignored, at the top level and within defined objects.
+A consumer MUST NOT reject a document for carrying a member it does not
+recognise, and MUST NOT act on one.
+
+This must-ignore rule is what allows a later minor version to add a member
+without invalidating every document already published. Version 2.0.0 set
+`additionalProperties: false` throughout and so could not have been extended
+that way; §12 was added in 2.1.0 only because the schema was relaxed first.
+A validator MAY report unknown members as a warning, and the reference
+validator does, so that a misspelled member name stays visible.
+
+The single exception is a signature object (§12.3), where unknown members MUST
+be rejected.
+
+Publisher-specific data belongs under `extensions`, which is namespaced and
+carries no meaning defined here.
 
 ### 3.1 `manifest`
 
 | Field | Type | | Notes |
 |---|---|---|---|
-| `version` | string | REQUIRED | Specification version, semantic versioning, e.g. `2.0.0` |
+| `version` | string | REQUIRED | Specification version, semantic versioning, e.g. `2.1.0` |
 | `site` | https URL | REQUIRED | Origin the manifest describes |
 | `generated_at` | date-time | OPTIONAL | RFC 3339 |
 | `generator` | string | OPTIONAL | Tool that produced the file |
@@ -355,6 +371,12 @@ The last condition matters: a manifest describing origin A but served from
 origin B asserts nothing, because the party making the assertion cannot be
 identified. Consumers MUST check this.
 
+A signature lifts that last condition, and only that one. When the manifest
+carries a signature that verifies against a key established for
+`manifest.site` per §12.6, the signer is identified directly and the manifest
+may be treated as ASSERTED however it was obtained. See §12.8. Every other
+condition in this section continues to apply to a signed manifest.
+
 ### 9b.4 Attribution
 
 Repeating an ASSERTED claim to a user requires attribution that makes the
@@ -390,10 +412,13 @@ otherwise:
 - **No rollback protection.** A publisher, a compromised CDN, or a stale cache
   can serve an older manifest whose `checked_at` was accurate when written.
   Nothing here detects that. A consumer that has previously seen a manifest
-  from an origin SHOULD reject a later one whose `checked_at` is earlier.
+  from an origin SHOULD reject a later one whose `checked_at` is earlier. For
+  an unsigned manifest this is a heuristic over a field anyone can write; §12.8
+  gives a checkable version for signed manifests.
 - **No binding between the freshness record and the evidence.** `checked_at`
-  is not covered by any hash or signature. It is a claim about a process,
-  not a commitment to content.
+  is not covered by any hash. It is a claim about a process, not a commitment
+  to content. Signing the manifest (§12) makes the record tamper-evident and
+  attributable, which is not the same as making it true.
 - **`evidence_present` is an aggregate.** It says how many quotes were found
   across the whole manifest, not which. Per-record `last_seen` is the only
   field that speaks to a specific piece of evidence, and it is the one a
@@ -431,7 +456,8 @@ Semantic versioning. `manifest.version` is REQUIRED.
 - **Minor** — backwards-compatible additions, such as new enum values.
 - **Patch** — clarifications with no wire-format change.
 
-Consumers MUST ignore unknown members under `extensions` rather than failing.
+Consumers MUST ignore unknown members wherever they appear, except inside a
+signature object (§3, §12.3).
 
 ### 11.1 Version history
 
@@ -445,13 +471,255 @@ though the 1.0.0 location remains a valid alias.
 should not be implemented. A 2.x consumer MUST NOT process a 1.x manifest, per
 the rule above — including this one.
 
-## 12. Integrity and signing (future)
+**2.1.0** adds optional signing (§12). It is a minor version: every valid
+2.0.0 document remains valid, and `signatures` is OPTIONAL.
 
-v1 defines no signing. The `integrity` object is deliberately open so mechanisms can be added without a breaking change.
+It also relaxes unknown members from MUST-reject to MUST-ignore (§3). That
+relaxation only widens what validates, so it breaks no existing document — but
+it had to happen before signing could be added at all. 2.0.0 declared that
+future mechanisms could be introduced without a breaking change while setting
+`additionalProperties: false` throughout, which made that promise
+unkeepable. A 2.0.0 validator will reject a signed manifest. This is a known
+consequence of the 2.0.0 schema, not of anything in 2.1.0, and is the reason
+the relaxation is recorded here rather than treated as an editorial change.
 
-Candidates for a future version: signed manifests using established standards (JWS or HTTP Message Signatures), DNS-based domain verification, and third-party attestation. No proprietary cryptography will be introduced.
+## 12. Signing
 
-A content hash is **not** a signature. It detects drift; it does not establish authorship.
+Signing is OPTIONAL. An unsigned manifest remains fully conforming, and a
+consumer MUST NOT reject a manifest for being unsigned.
+
+### 12.1 What a signature establishes, and what it does not
+
+HTTPS already proves that a manifest came from an origin, to the client that
+fetched it, at the moment it fetched it. Three things it does not do:
+
+- **It is not transferable.** An agent that retrieves a manifest, stores it, and
+  passes a claim to another system has nothing left to show. The transport
+  authenticity was consumed at fetch time. §9b.3 therefore withholds ASSERTED
+  from any manifest not retrieved over HTTPS from `manifest.site` — which is
+  correct, and which makes caching, relaying and multi-hop agent pipelines
+  unable to carry publisher assertions at all.
+- **It does not order versions.** Every §9b.5 limit on the freshness record
+  follows from this.
+- **It does not survive the origin.** A consumer that distrusts the web host has
+  no other way to establish who spoke.
+
+A signature makes the document itself the evidence. It establishes exactly one
+proposition:
+
+> This byte sequence was signed by the holder of key K at time `iat`.
+
+It establishes nothing about the truth of any claim, the authority of any
+source, or whether any quoted text is still present at its URL. In particular,
+**a signature does not confer OBSERVED status** (§9b.1). Only retrieving the
+evidence does that. An implementation that treats "signed" as "verified" has
+misread this section.
+
+### 12.2 Canonical form
+
+Signatures are computed over a canonical serialization, so that a document
+which is parsed and re-serialized — as any storing consumer will do — still
+verifies.
+
+The canonical form is **RFC 8785 (JSON Canonicalization Scheme)**, with three
+restrictions. A conforming implementation MUST refuse to canonicalize:
+
+1. any number that is not an integer;
+2. any integer outside the IEEE 754 double safe range, that is, outside
+   −(2⁵³−1) to 2⁵³−1 inclusive;
+3. any string containing an unpaired surrogate code point.
+
+These restrictions exist because RFC 8785 canonicalizes non-integer numbers
+with the ECMAScript `Number::toString` algorithm, which independent
+implementations reproduce inconsistently at the edges of the range. A
+disagreement there produces a valid signature that fails to verify in another
+implementation — a failure that is silent, remote, and very hard to diagnose.
+Refusing at signing time is preferable. No member defined by this
+specification is a non-integer number; only `extensions` (§3) can introduce
+one, and a publisher who does MUST be told the document cannot be signed
+rather than given a signature of uncertain portability.
+
+Implementations MUST sort object members by UTF-16 code unit, as RFC 8785
+requires. This differs from sorting by Unicode code point for characters
+outside the Basic Multilingual Plane, and the difference is observable.
+
+### 12.3 The `signatures` member
+
+A signed manifest carries a top-level `signatures` member: a non-empty array of
+signature objects, each with exactly two members.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `protected` | string | REQUIRED | base64url (unpadded, RFC 7515 §2) of the UTF-8 protected header |
+| `signature` | string | REQUIRED | base64url (unpadded) of the 64-byte Ed25519 signature |
+
+Unknown members inside a signature object MUST be rejected. This is the one
+place where the must-ignore rule of §3 does not apply: nothing inside a
+signature may be silently skipped.
+
+Multiple signatures MAY be present, which is how key rotation and
+multi-party attestation work without a format change.
+
+### 12.4 Protected header
+
+The protected header MUST be a JSON object carrying **exactly** these four
+parameters, and no others:
+
+| Parameter | Value |
+|---|---|
+| `alg` | `"EdDSA"` — the only algorithm this version defines |
+| `typ` | `"aem-signature+jws"` |
+| `kid` | the RFC 7638 JWK thumbprint of the signing key |
+| `iat` | signing time, integer seconds since the Unix epoch |
+
+A verifier MUST reject a header carrying any other parameter, and MUST reject
+one missing any of these. Ignoring unknown header parameters would let content
+be smuggled into a signed region that verifiers skip.
+
+There is no algorithm negotiation. `alg` has exactly one permitted value, so
+there is no algorithm-confusion attack and no `none`. A verifier MUST compare
+`alg` for string equality and MUST NOT accept a signature on the basis of any
+algorithm named in the document.
+
+`typ` is specific to this specification so that a signature produced by the
+same key for some other protocol cannot be replayed as a manifest signature.
+
+`iat` is inside the signed header deliberately. It is the only freshness
+statement in the format that the publisher cannot backdate after signing and
+that a cache cannot forge.
+
+### 12.5 Procedure
+
+The payload is **detached** (RFC 7515 Appendix F): it is not carried in the
+serialization, because it is the document itself.
+
+To sign:
+
+1. Remove the top-level `signatures` member, if present.
+2. Canonicalize the remainder per §12.2; call the UTF-8 bytes `P`.
+3. Build the protected header per §12.4 and canonicalize it; call the UTF-8
+   bytes `H`.
+4. The JWS signing input is `ASCII(BASE64URL(H) || "." || BASE64URL(P))`.
+5. Sign the input with Ed25519 (RFC 8032).
+6. Append `{"protected": BASE64URL(H), "signature": BASE64URL(sig)}` to
+   `signatures`.
+
+To verify, recompute `P` from the received document and use the `protected`
+string **exactly as received** — a verifier MUST NOT re-serialize the header,
+because the signature covers the octets that were sent, not their meaning.
+
+A verifier MUST reject a signature when any of the following holds:
+
+- the protected header does not conform to §12.4;
+- no key in the key set has the `kid` named in the header;
+- the key's RFC 7638 thumbprint does not equal that `kid`;
+- the key is not an `OKP` key on curve `Ed25519`;
+- `iat` is in the future by more than the verifier's clock-skew allowance
+  (RECOMMENDED: 300 seconds);
+- the Ed25519 verification fails.
+
+The thumbprint check is not redundant. Without it, `kid` is a label the
+attacker chooses, and an attacker able to serve the key set can publish their
+own key under an honest key's name.
+
+Because Ed25519 is deterministic (RFC 8032 §5.1.6), the same key, document and
+`iat` MUST produce byte-identical signatures in every conforming
+implementation. This is a conformance requirement, and the test vectors in
+`tests/conformance/signing/` depend on it.
+
+### 12.6 Key discovery
+
+The publisher's key set is a JWKS (RFC 7517) served at:
+
+```
+/.well-known/ai-evidence-jwks.json
+```
+
+on the same origin as the manifest, with media type
+`application/jwk-set+json`. It MUST contain only public keys. Each key MUST
+carry `kty: "OKP"`, `crv: "Ed25519"`, `alg: "EdDSA"`, `use: "sig"`, and a `kid`
+equal to its RFC 7638 thumbprint.
+
+This anchors key trust in the same web PKI that protects the manifest, which is
+enough to make a manifest transferable and version-ordered, but not enough to
+survive a compromised web host — an attacker who can replace the manifest can
+replace the key set beside it.
+
+A publisher MAY therefore additionally anchor a key in DNS:
+
+```
+_ai-evidence.<host>  TXT  "v=aem1; k=ed25519; kid=<thumbprint>; p=<base64url public key>"
+```
+
+Fields are semicolon-separated `name=value` pairs. `v` and `k` MUST be present
+with exactly these values; `p` MUST be the base64url-encoded 32-byte public
+key; `kid`, when present, MUST equal the key's thumbprint and a consumer MUST
+reject the record otherwise. Unknown fields MUST be ignored, so later versions
+can extend the record.
+
+A consumer that establishes a key from DNS holds it independently of the web
+origin, which is the case a signature is most needed for. Resolution is the
+consumer's responsibility; this specification defines the record, not a
+resolver, and the reference implementations deliberately ship no DNS client.
+
+### 12.7 Rotation and compromise
+
+To rotate, generate a new key, publish both in the JWKS, sign with the new one,
+and remove the old one after the longest `max-age` any cache may hold (§2.4).
+Both signatures MAY appear on one manifest during the overlap.
+
+There is no revocation mechanism. Removing a key from the JWKS stops it
+verifying for consumers that refetch the key set, and does nothing for a
+consumer holding a cached copy. A publisher who believes a key is compromised
+MUST rotate it and SHOULD assume every manifest that key ever signed remains
+verifiable to someone. Consumers SHOULD NOT cache a key set for longer than
+they would cache the manifest.
+
+### 12.8 Effect on epistemic state
+
+A valid signature changes exactly one thing in §9b: it makes ASSERTED
+**transferable**.
+
+§9b.3 withholds all state from a manifest not retrieved over HTTPS from the
+origin named in `manifest.site`, because otherwise the party making the
+assertion cannot be identified. When a manifest carries a signature that
+verifies against a key established for `manifest.site` per §12.6, the signature
+identifies that party directly. A consumer MAY therefore treat such a manifest
+as ASSERTED **regardless of how it was obtained** — from a cache, a peer, an
+aggregator, or storage.
+
+Everything else in §9b is unchanged. A signature does not confer OBSERVED, does
+not make a claim true, and does not license any operation that §9b.2 places
+above ASSERTED.
+
+A signature also sharpens §9b.5 in two ways:
+
+- **Version ordering.** A consumer that records the highest `iat` seen for a key
+  SHOULD reject a later document from that key with a lower `iat`. This is real
+  rollback detection, where §9b.5 could offer only a heuristic over an
+  unauthenticated field.
+- **Attributable freshness.** `manifest.verification` becomes tamper-evident and
+  attributable. A publisher can no longer attribute a false freshness record to
+  a cache or an intermediary. The record is still the publisher's own word —
+  signing makes a lie attributable, not impossible — but §9b.5's falsifiability
+  argument only bites once the liar can be identified.
+
+### 12.9 What signing does not solve
+
+- **Withholding.** An attacker who can serve stale content can decline to serve
+  a newer manifest. `iat` establishes an ordering, not a liveness guarantee. A
+  consumer that has never seen a fresher document cannot tell it is being held
+  back. Detecting that requires a transparency log, which this version does not
+  define.
+- **A dishonest publisher.** Signing authenticates the speaker, not the speech.
+- **`publisher.same_as`.** Still informational. A signature proves who signed,
+  not that they control any other listed identity.
+- **First contact.** Establishing a key from the JWKS reduces to trusting the
+  web host on first fetch. Only the DNS anchor of §12.6 avoids that, and only
+  to the extent DNS is trusted.
+
+A content hash is **not** a signature. `integrity.sha256` (§5) detects drift in
+one quotation; it does not establish authorship of anything.
 
 ## 13. Relationship to existing standards
 
@@ -464,6 +732,10 @@ This convention complements rather than replaces:
 | `llms.txt` | Concise LLM-oriented site context and links | Adjacent. `llms.txt` is prose for orientation; this is structured claim→evidence data. |
 | Schema.org / JSON-LD | Semantic descriptions of entities | Complementary, and a useful extraction input. A future version may offer a JSON-LD representation. |
 | W3C PROV | General provenance model | Conceptually related. `source_type` and `authority` map loosely onto PROV agents and attribution; a formal mapping is future work. |
+| RFC 7515 / 7517 / 7638 (JOSE) | Signatures, key sets, key thumbprints | Used directly by §12, in a detached-payload profile restricted to one algorithm. |
+| RFC 8785 (JCS) | Canonical JSON | Used directly by §12.2, restricted to integers so two implementations cannot disagree on the signed bytes. |
+| RFC 8032 (EdDSA) | Ed25519 signatures | The only signature algorithm this version defines. |
+| RFC 9421 (HTTP Message Signatures) | Signing HTTP exchanges | Deliberately **not** used. It signs a response, not a document, so the signature is lost as soon as a consumer stores the JSON — and it requires a dynamic server, which conflicts with publishing a static file alongside `robots.txt`. |
 
 This project is not a W3C standard and is not endorsed by any standards body.
 
@@ -486,6 +758,17 @@ A conforming generator:
   `method: automatically-generated` with `verified: false` (§8);
 - MUST write byte-identical content to every location it serves (§2.1).
 
+A generator that signs additionally:
+
+- MUST canonicalize per §12.2, and MUST refuse to sign a document it cannot
+  canonicalize rather than emitting a signature of uncertain portability;
+- MUST produce the protected header of §12.4 exactly, with no other parameter;
+- MUST produce byte-identical signatures for identical key, document and `iat`
+  (§12.5);
+- MUST NOT publish private key material in the JWKS (§12.6);
+- SHOULD refuse to sign a manifest that does not already validate, since a
+  signature over an invalid document only makes the invalidity authentic.
+
 Each of these is mechanically testable and exercised by the test suite.
 
 ### 14.3 Conforming consumer
@@ -500,7 +783,14 @@ A conforming consumer:
 - MUST NOT treat any state defined here as establishing that a claim is true;
 - MUST NOT execute any content from a manifest;
 - MUST reject a manifest served from an origin other than `manifest.site`
-  (§9b.3);
+  (§9b.3), unless it carries a signature that verifies per §12.5 against a key
+  established for `manifest.site` per §12.6;
+- MUST, when checking a signature, reject it on any condition listed in §12.5,
+  and MUST NOT select a verification algorithm named in the document;
+- MUST NOT treat a valid signature as establishing that evidence is present,
+  that a claim is true, or as conferring OBSERVED status (§12.1);
+- SHOULD record the highest `iat` seen per key and reject a later document from
+  that key bearing a lower one (§12.8);
 - SHOULD reject a manifest whose `checked_at` precedes one it has already seen
   from the same origin (§9b.5);
 - SHOULD spot-check at least one evidence record per manifest (§9b.5);
@@ -510,11 +800,21 @@ A conforming consumer:
 
 Stated so implementers do not assume otherwise:
 
-- **Authentication of the publisher.** There is no signature. A manifest served
-  over HTTPS from an origin carries that origin's transport authenticity and
-  nothing more. `publisher.same_as` is informational; anyone can list any URL.
-- **Rollback detection.** Nothing binds a manifest to a point in time in a way a
-  consumer can check. §9b.5 gives a heuristic, not a guarantee.
+- **Authentication of the publisher, when unsigned.** An unsigned manifest
+  served over HTTPS carries that origin's transport authenticity and nothing
+  more, and that authenticity is not transferable (§12.1). §12 defines optional
+  signing; it remains optional, so a consumer cannot assume it.
+  `publisher.same_as` is informational whether or not the manifest is signed:
+  a signature proves who signed, not that they control any other listed
+  identity.
+- **Liveness.** §12.8 lets a consumer order two signed manifests and reject the
+  older. Nothing lets a consumer detect that a fresher manifest exists and is
+  being withheld. That needs a transparency log, which is not defined here.
+- **Revocation.** §12.7 defines rotation. There is no mechanism that tells a
+  consumer holding a cached key that the key is no longer trusted.
+- **Rollback detection, when unsigned.** Nothing binds an unsigned manifest to a
+  point in time in a way a consumer can check. §9b.5 gives a heuristic, not a
+  guarantee.
 - **Conflict resolution.** Two claims in one manifest may contradict each other,
   and two manifests from different origins certainly may. This document defines
   no precedence. A consumer encountering a contradiction holds two publisher

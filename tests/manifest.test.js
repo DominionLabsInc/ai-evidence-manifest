@@ -58,8 +58,16 @@ describe('schema validation', () => {
   test('rejects unknown claim types', async () => {
     assert.equal((await check('unknown-type.json')).valid, false);
   });
-  test('rejects unknown fields (additionalProperties: false)', async () => {
-    assert.equal((await check('unknown-field.json')).valid, false);
+  // The schema permits unknown members so a later minor version can add one
+  // without invalidating documents already published. The typo still has to be
+  // visible, so it is reported rather than silently accepted.
+  test('accepts unknown fields but reports them', async () => {
+    const r = await check('unknown-field.json');
+    assert.equal(r.valid, true);
+    assert.ok(codes(r).includes('unknown-member'));
+  });
+  test('rejects unknown fields under --strict', async () => {
+    assert.equal((await check('unknown-field.json', { strict: true })).valid, false);
   });
   test('rejects malformed ids', async () => {
     assert.equal((await check('bad-id-format.json')).valid, false);
@@ -226,6 +234,34 @@ describe('cli smoke', () => {
       const out = execFileSync('node', [cli, ...argv], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
       assert.ok(out.length > 0, `no output from: ${argv.join(' ')}`);
     }
+  });
+
+  // keygen/sign/verify write files and shell out; a stray identifier in any of
+  // them would only show up here.
+  test('the signing commands round-trip through the CLI', async () => {
+    const { execFileSync } = await import('node:child_process');
+    const os = await import('node:os');
+    const cli = path.join(FIX, '..', '..', 'validator', 'cli.js');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aem-cli-'));
+    const manifest = path.join(dir, 'ai.json');
+    fs.copyFileSync(path.join(FIX, '..', '..', 'examples', 'ai.json'), manifest);
+    const run = (...argv) => execFileSync('node', [cli, ...argv], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+
+    assert.match(run('keygen', '--out', dir, '--site', 'https://example.com'), /key id/);
+    assert.ok(fs.existsSync(path.join(dir, '.well-known', 'ai-evidence-jwks.json')));
+    assert.equal(fs.statSync(path.join(dir, 'ai-evidence-signing-key.json')).mode & 0o777, 0o600);
+
+    assert.match(run('sign', manifest, '--key', path.join(dir, 'ai-evidence-signing-key.json')), /signed/);
+    assert.match(run('verify', manifest, '--jwks', path.join(dir, '.well-known', 'ai-evidence-jwks.json')), /VERIFIED/);
+    assert.match(run('validate', manifest, '--offline', '--jwks', path.join(dir, '.well-known', 'ai-evidence-jwks.json')), /VALID/);
+
+    // A tampered manifest must fail, with a non-zero exit code.
+    const doc = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+    doc.claims[0].claim = 'Something the publisher never signed.';
+    fs.writeFileSync(manifest, JSON.stringify(doc, null, 2));
+    assert.throws(() => run('verify', manifest, '--jwks', path.join(dir, '.well-known', 'ai-evidence-jwks.json')));
+
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   test('the source contains no undefined colour helpers', () => {

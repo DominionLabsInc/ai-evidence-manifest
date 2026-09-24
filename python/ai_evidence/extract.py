@@ -351,10 +351,10 @@ def to_manifest(site: str, candidates: list[dict]) -> dict:
 
     return {
         "manifest": {
-            "version": "2.0.0",
+            "version": "2.1.0",
             "site": site,
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
-            "generator": "ai-evidence-py/0.2.0",
+            "generator": "ai-evidence-py/0.3.0",
         },
         "claims": claims,
     }

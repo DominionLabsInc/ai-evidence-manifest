@@ -3,13 +3,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .config import (ALIAS_PATH, CONFIG_FILENAME, WELL_KNOWN_PATH, ConfigError,
                      generate, init_config, load_config, write_config)
 from .extract import extract_from_page, extract_from_site, to_manifest
 from .fetch_safe import FetchRefused, fetch_safe
+from .jws import (JWKS_PATH, SignatureError, build_jwks, dns_txt_record,
+                  generate_key_pair, sign_manifest, verify_manifest)
 from .repair import SIMILARITY_THRESHOLD, repair_manifest
 from .validate import (ManifestError, parse_manifest, stamp_verification,
                        validate_manifest)
@@ -90,6 +94,153 @@ def _count_evidence(m):
 def _all_present(m):
     return [{"ci": ci, "ei": ei, "present": True}
             for ci, c in enumerate(m["claims"]) for ei, _ in enumerate(c["evidence"])]
+
+
+def _read_jwks(target: str) -> dict:
+    """Read a key set from a local file or a URL."""
+    if _is_url(target):
+        res = fetch_safe(target, accept="application/jwk-set+json, application/json")
+        return json.loads(res["body"])
+    p = Path(target)
+    if not p.exists():
+        raise FileNotFoundError(f"no such key set: {p.resolve()}")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def _iso(epoch_seconds: int) -> str:
+    return datetime.fromtimestamp(epoch_seconds, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+
+def cmd_keygen(args) -> int:
+    out_dir = Path(args.out or ".").resolve()
+    key_path = out_dir / "ai-evidence-signing-key.json"
+    if key_path.exists() and not args.force:
+        sys.stderr.write(RED(f"error: {key_path} already exists; refusing to overwrite "
+                             f"a signing key (use --force)\n"))
+        return 2
+    jwks_path = out_dir / ".well-known" / "ai-evidence-jwks.json"
+
+    kp = generate_key_pair()
+    jwks_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Opened with the narrow mode rather than chmod-ed afterwards, so the key is
+    # never world-readable even briefly.
+    fd = os.open(str(key_path), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(json.dumps(kp["private_jwk"], indent=2) + "\n")
+    os.chmod(str(key_path), 0o600)
+    jwks_path.write_text(json.dumps(build_jwks([kp["public_jwk"]]), indent=2) + "\n",
+                         encoding="utf-8")
+
+    site = args.site or "example.com"
+    if _is_url(site):
+        from urllib.parse import urlsplit
+        site = urlsplit(site).hostname or site
+    txt = dns_txt_record(kp["public_jwk"], site)
+
+    print(f"\n  {BOLD('key id')}  {kp['kid']}\n")
+    print(f"  {GREEN('private')}  {key_path}  {DIM('(mode 0600)')}")
+    print(f"  {GREEN('public')}   {jwks_path}\n")
+    print(f"  {YELLOW('Do not commit or publish the private key.')} Serve only the JWKS, at")
+    print(f"  {DIM(JWKS_PATH)} on the same origin as the manifest.\n")
+    print(DIM("  Optional — anchor the key in DNS as well, so a consumer can establish it"))
+    print(DIM("  without trusting the web host:"))
+    print(f'    {txt["name"]}  TXT  "{txt["value"]}"\n')
+    return 0
+
+
+def cmd_sign(args) -> int:
+    file = Path(args.target)
+    if not file.exists():
+        sys.stderr.write(RED(f"error: no such file: {file.resolve()}\n"))
+        return 2
+    key_file = Path(args.key or "ai-evidence-signing-key.json")
+    if not key_file.exists():
+        sys.stderr.write(RED(f"error: no signing key at {key_file.resolve()}; "
+                             f"run `ai-evidence keygen` first\n"))
+        return 2
+    try:
+        manifest = json.loads(file.read_text(encoding="utf-8"))
+        private_jwk = json.loads(key_file.read_text(encoding="utf-8"))
+    except Exception as e:
+        sys.stderr.write(RED(f"error: {e}\n"))
+        return 2
+
+    # A signature over a document that is already invalid only makes the
+    # invalidity authentic, so check first and say so.
+    pre = validate_manifest(manifest, offline=True)
+    if not pre["valid"]:
+        sys.stderr.write(RED(f"error: refusing to sign an invalid manifest "
+                             f"({len(pre['errors'])} error(s))\n"))
+        for f in pre["errors"]:
+            sys.stderr.write(f"  {DIM(f['where'])} {f['message']}\n")
+        return 1
+
+    try:
+        # Re-signing replaces rather than accumulates: a signature over an older
+        # payload can never verify again, so keeping it only produces noise.
+        unsigned = {k: v for k, v in manifest.items() if k != "signatures"}
+        signed = sign_manifest(unsigned, private_jwk)
+    except (SignatureError, ValueError) as e:
+        sys.stderr.write(RED(f"error: {e}\n"))
+        return 2
+
+    out = Path(args.out or file)
+    out.write_text(json.dumps(signed, indent=2) + "\n", encoding="utf-8")
+    import base64
+    head = signed["signatures"][-1]["protected"]
+    header = json.loads(base64.urlsafe_b64decode(head + "=" * (-len(head) % 4)))
+    print(f"\n  {GREEN('signed')}  {out.resolve()}")
+    print(f"  {DIM('key ' + header['kid'] + ' · iat ' + _iso(header['iat']))}\n")
+    return 0
+
+
+def cmd_verify(args) -> int:
+    try:
+        raw, source = _read_manifest(args.target)
+        jwks_target = args.jwks
+        if not jwks_target:
+            if not _is_url(args.target):
+                sys.stderr.write(RED("error: verifying a local file needs --jwks <file|url>\n"))
+                return 2
+            from urllib.parse import urljoin
+            jwks_target = urljoin(args.target, JWKS_PATH)
+        jwks = _read_jwks(jwks_target)
+    except FetchRefused as e:
+        sys.stderr.write(RED(f"error: {e.code}: {e}\n"))
+        return 2
+    except Exception as e:
+        sys.stderr.write(RED(f"error: {e}\n"))
+        return 2
+
+    try:
+        manifest = json.loads(raw)
+    except Exception as e:
+        sys.stderr.write(RED(f"error: manifest is not valid JSON: {e}\n"))
+        return 1
+
+    result = verify_manifest(manifest, jwks)
+    if args.json:
+        print(json.dumps({"source": source, **result}, indent=2))
+        return 0 if result["verified"] else 1
+
+    print(f"\n{BOLD(source)}\n")
+    if not result["signed"]:
+        print(f"  {YELLOW('UNSIGNED')}  no signatures; this manifest is attributable only "
+              f"to the transport that delivered it\n")
+        return 1
+    for r in result["results"]:
+        if r["valid"]:
+            print(f"  {GREEN('ok')}      {r['kid']}  {DIM('signed ' + _iso(r['iat']))}")
+        else:
+            print(f"  {RED('bad')}     {r['reason']}  {DIM('[' + str(r['code']) + ']')}")
+    print()
+    if result["verified"]:
+        n = sum(1 for r in result["results"] if r["valid"])
+        print(f"  {GREEN('VERIFIED')}  {n} of {len(result['results'])} signature(s) check out\n")
+        return 0
+    print(f"  {RED('UNVERIFIED')}  no signature checks out against this key set\n")
+    return 1
 
 
 def cmd_init(args) -> int:
@@ -190,7 +341,15 @@ def cmd_validate(args, force_online=None) -> int:
     offline = (not force_online) and (args.offline or not (args.online or _is_url(args.target)))
     if force_online:
         offline = False
-    result = validate_manifest(manifest, offline=offline, strict=args.strict, raw_bytes=nbytes)
+    jwks = None
+    if getattr(args, "jwks", None):
+        try:
+            jwks = _read_jwks(args.jwks)
+        except Exception as e:
+            sys.stderr.write(RED(f"error: {e}\n"))
+            return 2
+    result = validate_manifest(manifest, offline=offline, strict=args.strict,
+                               raw_bytes=nbytes, jwks=jwks)
     _report(result, source, args.json)
     return 0 if result["valid"] else 1
 
@@ -323,6 +482,7 @@ def main(argv=None) -> int:
         p.add_argument("--online", action="store_true")
         p.add_argument("--strict", action="store_true")
         p.add_argument("--json", action="store_true")
+        p.add_argument("--jwks", help="key set to check signatures against")
         if name == "check":
             p.add_argument("--update", action="store_true",
                            help="write the freshness result back into the manifest")
@@ -346,6 +506,24 @@ def main(argv=None) -> int:
     p.add_argument("--per-type", type=int)
     p.add_argument("--page-only", action="store_true")
     p.set_defaults(fn=cmd_extract)
+
+    p = sub.add_parser("keygen", help="create an Ed25519 signing key and a JWKS")
+    p.add_argument("--out", help="where to write (default: the current directory)")
+    p.add_argument("--site", help="host to print the optional DNS TXT record for")
+    p.add_argument("--force", action="store_true")
+    p.set_defaults(fn=cmd_keygen)
+
+    p = sub.add_parser("sign", help="sign a manifest")
+    p.add_argument("target")
+    p.add_argument("--key", help="private key JWK (default ai-evidence-signing-key.json)")
+    p.add_argument("--out", help="write the signed manifest here (default: in place)")
+    p.set_defaults(fn=cmd_sign)
+
+    p = sub.add_parser("verify", help="check a manifest's signatures against a JWKS")
+    p.add_argument("target")
+    p.add_argument("--jwks", help=f"key set (default: {JWKS_PATH} at the manifest origin)")
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(fn=cmd_verify)
 
     args = ap.parse_args(argv)
     return args.fn(args)

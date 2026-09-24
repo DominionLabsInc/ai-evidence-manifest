@@ -1,0 +1,115 @@
+{
+  "note": "RFC 8785 canonical JSON, restricted per SPEC.md section 12.2. Every conforming implementation must produce `expected` byte for byte from `input`. Values this profile refuses (non-integer numbers, integers outside the IEEE 754 safe range, NaN, Infinity, lone surrogates) cannot be written as JSON literals here and are tested in code.",
+  "vectors": [
+    {
+      "name": "member ordering",
+      "input": {
+        "b": 1,
+        "a": 2,
+        "C": 3,
+        "": 4
+      },
+      "expected": "{\"\":4,\"C\":3,\"a\":2,\"b\":1}"
+    },
+    {
+      "name": "ordering is by UTF-16 code unit, not code point",
+      "input": {
+        "￿": "bmp-max",
+        "😀": "astral",
+        "é": "latin"
+      },
+      "expected": "{\"é\":\"latin\",\"😀\":\"astral\",\"￿\":\"bmp-max\"}"
+    },
+    {
+      "name": "nested objects sort at every level",
+      "input": {
+        "z": {
+          "b": 1,
+          "a": {
+            "d": 1,
+            "c": 2
+          }
+        },
+        "a": [
+          {
+            "n": 2,
+            "m": 1
+          }
+        ]
+      },
+      "expected": "{\"a\":[{\"m\":1,\"n\":2}],\"z\":{\"a\":{\"c\":2,\"d\":1},\"b\":1}}"
+    },
+    {
+      "name": "arrays keep their order",
+      "input": [
+        3,
+        1,
+        2,
+        {
+          "b": 1,
+          "a": 2
+        }
+      ],
+      "expected": "[3,1,2,{\"a\":2,\"b\":1}]"
+    },
+    {
+      "name": "short escapes",
+      "input": "quote\" backslash\\ bs\b tab\t lf\n ff\f cr\r",
+      "expected": "\"quote\\\" backslash\\\\ bs\\b tab\\t lf\\n ff\\f cr\\r\""
+    },
+    {
+      "name": "other control characters use lowercase \\u00xx",
+      "input": "\u0000\u0001\u001f",
+      "expected": "\"\\u0000\\u0001\\u001f\""
+    },
+    {
+      "name": "DEL and non-ASCII are literal, not escaped",
+      "input": " é 中 😀",
+      "expected": "\" é 中 😀\""
+    },
+    {
+      "name": "no escape for solidus or U+2028/U+2029",
+      "input": "/    ",
+      "expected": "\"/    \""
+    },
+    {
+      "name": "integers, including negative zero",
+      "input": {
+        "a": 0,
+        "b": 0,
+        "c": -1,
+        "d": 9007199254740991,
+        "e": -9007199254740991
+      },
+      "expected": "{\"a\":0,\"b\":0,\"c\":-1,\"d\":9007199254740991,\"e\":-9007199254740991}"
+    },
+    {
+      "name": "floats with integral value canonicalize as integers",
+      "input": 1,
+      "expected": "1"
+    },
+    {
+      "name": "literals",
+      "input": [
+        null,
+        true,
+        false
+      ],
+      "expected": "[null,true,false]"
+    },
+    {
+      "name": "empty containers",
+      "input": {
+        "o": {},
+        "a": [],
+        "s": ""
+      },
+      "expected": "{\"a\":[],\"o\":{},\"s\":\"\"}"
+    },
+    {
+      "name": "combining characters are not normalized",
+      "input": "é vs é",
+      "expected": "\"é vs é\""
+    }
+  ]
+}

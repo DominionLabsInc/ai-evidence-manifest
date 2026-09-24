@@ -9,3 +9,8 @@ python/*.egg-info/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Signing keys. `ai-evidence keygen` writes the private key here; only the
+# JWKS under .well-known/ is meant to be published.
+ai-evidence-signing-key.json
+*.signing-key.json

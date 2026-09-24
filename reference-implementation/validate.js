@@ -6,6 +6,7 @@ import addFormats from 'ajv-formats';
 import { sha256OfText, containsNormalized, normalizeText } from './normalize.js';
 import { fetchSafe, FetchRefused } from './fetch-safe.js';
 import { extractText } from './html.js';
+import { verifyManifest, JWKS_PATH } from './jws.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const SCHEMA_PATH = path.join(here, '..', 'schema', 'ai-evidence-manifest.schema.json');
@@ -30,6 +31,66 @@ function schemaValidator() {
   return _validator;
 }
 
+/**
+ * Members the schema declares, read from the schema itself so this check can
+ * never drift away from it.
+ */
+let _known;
+function knownMembers() {
+  if (!_known) {
+    const schema = JSON.parse(fs.readFileSync(SCHEMA_PATH, 'utf8'));
+    const of = (def) => Object.keys(schema.$defs[def].properties ?? {});
+    _known = {
+      '': Object.keys(schema.properties ?? {}),
+      manifestHeader: of('manifestHeader'),
+      manifestVerification: of('manifestVerification'),
+      publisher: of('publisher'),
+      claim: of('claim'),
+      evidence: of('evidence'),
+      locator: of('locator'),
+      integrity: of('integrity'),
+      verification: of('verification'),
+    };
+  }
+  return _known;
+}
+
+/**
+ * Report members the schema does not declare.
+ *
+ * The schema permits them, because a format that rejects everything it has not
+ * seen cannot be extended without breaking every document already published.
+ * They are still worth surfacing: at this severity a misspelled member name is
+ * visible to the publisher who made the typo, while a consumer implementing a
+ * later minor version is not told its manifest is wrong.
+ */
+function checkUnknownMembers(manifest, findings) {
+  const known = knownMembers();
+  const visit = (obj, def, at) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const k of Object.keys(obj)) {
+      if (!known[def].includes(k)) {
+        findings.push(warn('unknown-member', `"${k}" is not declared by this version of the schema; consumers that do not understand it will ignore it`, `${at}/${k}`));
+      }
+    }
+  };
+
+  visit(manifest, '', '');
+  visit(manifest.manifest, 'manifestHeader', '/manifest');
+  visit(manifest.manifest?.verification, 'manifestVerification', '/manifest/verification');
+  visit(manifest.publisher, 'publisher', '/publisher');
+  manifest.claims?.forEach((c, ci) => {
+    visit(c, 'claim', `/claims/${ci}`);
+    c.evidence?.forEach((ev, ei) => {
+      const at = `/claims/${ci}/evidence/${ei}`;
+      visit(ev, 'evidence', at);
+      visit(ev.locator, 'locator', `${at}/locator`);
+      visit(ev.integrity, 'integrity', `${at}/integrity`);
+      visit(ev.verification, 'verification', `${at}/verification`);
+    });
+  });
+}
+
 const err = (code, message, where) => ({ severity: 'error', code, message, where });
 const warn = (code, message, where) => ({ severity: 'warning', code, message, where });
 
@@ -41,9 +102,9 @@ const warn = (code, message, where) => ({ severity: 'warning', code, message, wh
  * text — that is the check that catches a page drifting away from its manifest.
  */
 export async function validateManifest(manifest, opts = {}) {
-  const o = { offline: true, strict: false, limits: { ...LIMITS }, rawBytes: null, ...opts };
+  const o = { offline: true, strict: false, limits: { ...LIMITS }, rawBytes: null, jwks: null, ...opts };
   const findings = [];
-  const stats = { claims: 0, evidence: 0, checkedUrls: 0, reachable: 0, textPresent: 0 };
+  const stats = { claims: 0, evidence: 0, checkedUrls: 0, reachable: 0, textPresent: 0, signatures: 0, signaturesValid: 0 };
 
   // ---- structure -------------------------------------------------------
   const validate = schemaValidator();
@@ -52,6 +113,29 @@ export async function validateManifest(manifest, opts = {}) {
       findings.push(err('schema', `${e.instancePath || '/'} ${e.message}${e.params?.allowedValues ? ` (allowed: ${e.params.allowedValues.join(', ')})` : ''}`, e.instancePath || '/'));
     }
     return finish(findings, stats, o);   // later checks assume a valid shape
+  }
+
+  checkUnknownMembers(manifest, findings);
+
+  // ---- signatures ------------------------------------------------------
+  // A signature answers a question the transport cannot: whether this document
+  // is still attributable to its publisher once it has been stored and passed
+  // on. Checking it needs the publisher's key set, so a caller that supplies
+  // none gets told the signature went unchecked rather than being left to
+  // assume it passed.
+  if (Array.isArray(manifest.signatures) && manifest.signatures.length > 0) {
+    if (!o.jwks) {
+      findings.push(warn('signature-unchecked', `manifest carries ${manifest.signatures.length} signature(s) but no key set was supplied; fetch ${JWKS_PATH} from the manifest origin to check them`, '/signatures'));
+    } else {
+      const result = verifyManifest(manifest, o.jwks);
+      result.results.forEach((r, i) => {
+        if (r.valid) stats.signaturesValid++;
+        else findings.push(err('signature-invalid', `${r.code}: ${r.reason}`, `/signatures/${i}`));
+      });
+      stats.signatures = result.results.length;
+    }
+  } else if (o.jwks) {
+    findings.push(warn('unsigned', 'a key set was supplied but the manifest carries no signature, so its assertions are attributable only to the transport that delivered it', '/'));
   }
 
   // ---- version ---------------------------------------------------------

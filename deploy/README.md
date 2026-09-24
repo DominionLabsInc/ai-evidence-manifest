@@ -4,6 +4,11 @@
 
 Three things matter regardless of platform:
 
+0. **If you sign the manifest**, serve the key set at
+   `/.well-known/ai-evidence-jwks.json` with `Content-Type: application/jwk-set+json`
+   (`application/json` is accepted). Publish only the JWKS — never the private
+   key `ai-evidence keygen` writes beside it.
+
 1. **`Content-Type: application/json`**
 2. **`Access-Control-Allow-Origin: *`** — browser-based agents cannot read it otherwise
 3. **Publicly reachable** — no authentication, and not `Disallow`ed in `robots.txt`

@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://dominionlabsinc.github.io/ai-evidence-manifest/schema/2.0.0/ai-evidence-manifest.schema.json",
+  "$id": "https://dominionlabsinc.github.io/ai-evidence-manifest/schema/2.1.0/ai-evidence-manifest.schema.json",
+  "$comment": "Unknown members are permitted throughout and MUST be ignored by consumers that do not understand them, so a later minor version can add members without invalidating documents already published. The reference validator reports unknown members as warnings, which keeps a misspelled member name visible without freezing the format. The one exception is $defs/signature, which rejects unknown members because nothing inside a signature entry may be silently ignored.",
   "title": "AI Evidence Manifest",
   "description": "A publisher-declared index linking important claims on a website to the first-party evidence supporting them. The manifest asserts where evidence is located; it does not assert that any claim is true.",
   "type": "object",
@@ -8,7 +9,7 @@
     "manifest",
     "claims"
   ],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "manifest": {
       "$ref": "#/$defs/manifestHeader"
@@ -27,6 +28,14 @@
       "type": "object",
       "description": "Namespaced, non-normative extension data. Consumers MUST ignore keys they do not understand.",
       "additionalProperties": true
+    },
+    "signatures": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Detached-payload JWS signatures over the canonical form of this document with `signatures` removed. See SPEC.md section 12.",
+      "items": {
+        "$ref": "#/$defs/signature"
+      }
     }
   },
   "$defs": {
@@ -36,7 +45,7 @@
         "version",
         "site"
       ],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "version": {
           "type": "string",
@@ -65,7 +74,7 @@
     },
     "publisher": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "name": {
           "type": "string",
@@ -93,7 +102,7 @@
         "claim",
         "evidence"
       ],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "id": {
           "type": "string",
@@ -151,7 +160,7 @@
         "text",
         "source_type"
       ],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "url": {
           "$ref": "#/$defs/httpsUrl"
@@ -202,7 +211,7 @@
     },
     "locator": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "description": "How to find the evidence within the source. Prefer fragment or section; selector is advisory and MAY be ignored.",
       "properties": {
         "fragment": {
@@ -224,7 +233,7 @@
     },
     "integrity": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "minProperties": 1,
       "properties": {
         "sha256": {
@@ -239,7 +248,7 @@
       "required": [
         "method"
       ],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "verified": {
           "type": "boolean",
@@ -350,7 +359,7 @@
         "evidence_total",
         "evidence_present"
       ],
-      "additionalProperties": false,
+      "additionalProperties": true,
       "description": "A publisher-reported freshness record. It is a publisher assertion like any other, but it is falsifiable: a consumer that spot-checks can detect a publisher reporting checks it did not run.",
       "properties": {
         "checked_at": {
@@ -379,6 +388,27 @@
           "minimum": 1,
           "maximum": 365,
           "description": "How often the publisher intends to re-check. A consumer can treat the record as stale past this."
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "description": "One detached JWS signature. Unknown members are rejected: a signature entry is security-relevant and nothing in it may be silently ignored.",
+      "required": [
+        "protected",
+        "signature"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "protected": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "base64url (unpadded) of the JWS protected header, carrying exactly alg, typ, kid and iat."
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{86}$",
+          "description": "base64url (unpadded) of the 64-byte Ed25519 signature."
         }
       }
     }

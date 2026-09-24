@@ -1,0 +1,12 @@
+{
+  "note": "Ed25519 is deterministic, so this key, this manifest and this iat must produce these exact bytes in every conforming implementation. A mismatch means canonicalization, protected-header encoding or the signing input has drifted.",
+  "key": "key.json in this directory is a published test key, seeded with the byte 0x07 repeated. It must never sign a real manifest.",
+  "iat": 1758700000,
+  "kid": "--6IM5l0OosLj9yWskISYhUA3n_3CURQkmrYMSha_ck",
+  "canonical_bytes": 6352,
+  "canonical_sha256": "1d39862ac89872938a827ff2eb03bae82dad807fcdbdd0fbe97b470a1022ec0f",
+  "signature": {
+    "protected": "eyJhbGciOiJFZERTQSIsImlhdCI6MTc1ODcwMDAwMCwia2lkIjoiLS02SU01bDBPb3NMajl5V3NrSVNZaFVBM25fM0NVUlFrbXJZTVNoYV9jayIsInR5cCI6ImFlbS1zaWduYXR1cmUrandzIn0",
+    "signature": "ZL7TakO4xeiL9b4cmUX82tNBfATl2PvktXFh0_QX4RCOjYMSnTcpHJZwrim6fRLHRuiGKhp09HTUnVcL4-JCCA"
+  }
+}

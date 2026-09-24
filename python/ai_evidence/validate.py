@@ -14,6 +14,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 from .fetch_safe import FetchRefused, fetch_safe
 from .html import extract_text
+from .jws import JWKS_PATH, verify_manifest
 from .normalize import contains_normalized, sha256_of_text
 
 _HERE = Path(__file__).resolve().parent
@@ -52,6 +53,69 @@ def _schema_validator() -> Draft202012Validator:
     return _validator
 
 
+_known_members = None
+
+
+def _known() -> dict:
+    """Members the schema declares, read from the schema itself so this check
+    can never drift away from it."""
+    global _known_members
+    if _known_members is None:
+        schema = _schema_validator().schema
+        defs = schema["$defs"]
+
+        def of(name):
+            return list(defs[name].get("properties", {}))
+
+        _known_members = {
+            "": list(schema.get("properties", {})),
+            "manifestHeader": of("manifestHeader"),
+            "manifestVerification": of("manifestVerification"),
+            "publisher": of("publisher"),
+            "claim": of("claim"),
+            "evidence": of("evidence"),
+            "locator": of("locator"),
+            "integrity": of("integrity"),
+            "verification": of("verification"),
+        }
+    return _known_members
+
+
+def _check_unknown_members(manifest: dict, findings: list) -> None:
+    """Report members the schema does not declare.
+
+    The schema permits them, because a format that rejects everything it has
+    not seen cannot be extended without breaking every document already
+    published. They are still worth surfacing: at this severity a misspelled
+    member name is visible to the publisher who made the typo, while a consumer
+    implementing a later minor version is not told its manifest is wrong.
+    """
+    known = _known()
+
+    def visit(obj, defname, at):
+        if not isinstance(obj, dict):
+            return
+        for k in obj:
+            if k not in known[defname]:
+                findings.append(_warn("unknown-member",
+                    f'"{k}" is not declared by this version of the schema; consumers '
+                    f"that do not understand it will ignore it", f"{at}/{k}"))
+
+    visit(manifest, "", "")
+    visit(manifest.get("manifest"), "manifestHeader", "/manifest")
+    visit((manifest.get("manifest") or {}).get("verification"),
+          "manifestVerification", "/manifest/verification")
+    visit(manifest.get("publisher"), "publisher", "/publisher")
+    for ci, c in enumerate(manifest.get("claims") or []):
+        visit(c, "claim", f"/claims/{ci}")
+        for ei, ev in enumerate(c.get("evidence") or []):
+            at = f"/claims/{ci}/evidence/{ei}"
+            visit(ev, "evidence", at)
+            visit(ev.get("locator"), "locator", f"{at}/locator")
+            visit(ev.get("integrity"), "integrity", f"{at}/integrity")
+            visit(ev.get("verification"), "verification", f"{at}/verification")
+
+
 def _err(code, message, where):
     return {"severity": "error", "code": code, "message": message, "where": where}
 
@@ -74,10 +138,12 @@ def parse_manifest(raw: str) -> tuple[dict, int]:
 
 
 def validate_manifest(manifest: dict, offline: bool = True, strict: bool = False,
-                      raw_bytes: int | None = None, limits: dict | None = None) -> dict:
+                      raw_bytes: int | None = None, limits: dict | None = None,
+                      jwks: dict | None = None) -> dict:
     lim = {**LIMITS, **(limits or {})}
     findings: list[dict] = []
-    stats = {"claims": 0, "evidence": 0, "checkedUrls": 0, "reachable": 0, "textPresent": 0}
+    stats = {"claims": 0, "evidence": 0, "checkedUrls": 0, "reachable": 0, "textPresent": 0,
+             "signatures": 0, "signaturesValid": 0}
 
     errors = sorted(_schema_validator().iter_errors(manifest),
                     key=lambda e: list(e.absolute_path))
@@ -86,6 +152,34 @@ def validate_manifest(manifest: dict, offline: bool = True, strict: bool = False
             where = "/" + "/".join(str(p) for p in e.absolute_path) if e.absolute_path else "/"
             findings.append(_err("schema", f"{where} {e.message}", where))
         return _finish(findings, stats, strict, offline, [])
+
+    _check_unknown_members(manifest, findings)
+
+    # A signature answers a question the transport cannot: whether this document
+    # is still attributable to its publisher once it has been stored and passed
+    # on. Checking it needs the publisher's key set, so a caller that supplies
+    # none gets told the signature went unchecked rather than being left to
+    # assume it passed.
+    signatures = manifest.get("signatures")
+    if isinstance(signatures, list) and signatures:
+        if not jwks:
+            findings.append(_warn("signature-unchecked",
+                f"manifest carries {len(signatures)} signature(s) but no key set was "
+                f"supplied; fetch {JWKS_PATH} from the manifest origin to check them",
+                "/signatures"))
+        else:
+            result = verify_manifest(manifest, jwks)
+            stats["signatures"] = len(result["results"])
+            for i, r in enumerate(result["results"]):
+                if r["valid"]:
+                    stats["signaturesValid"] += 1
+                else:
+                    findings.append(_err("signature-invalid",
+                        f"{r['code']}: {r['reason']}", f"/signatures/{i}"))
+    elif jwks:
+        findings.append(_warn("unsigned",
+            "a key set was supplied but the manifest carries no signature, so its "
+            "assertions are attributable only to the transport that delivered it", "/"))
 
     version = manifest["manifest"]["version"]
     if int(version.split(".")[0]) != SUPPORTED_MAJOR:
